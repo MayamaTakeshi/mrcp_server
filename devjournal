@@ -1,0 +1,59 @@
+=====================================================
+2020/02/05 takeshi
+
+Initial development done with:
+
+# node -v
+v10.15.3
+
+
+mrcp_server draft:
+  - if voice="dtmf" then do SR/SS locally using gstreamer (node-gir) or spandsp
+  - the request starts with SIP INVITE that requests resource "speechsynth" or "speechrecog"
+  - the response will contain the channel_identifier that the client app should use when issuing requests on the MRCP TCP connection
+  - in the MRCP TCP connection the client will be able to send commands and get events related to the resource
+  - the client might create more than one SIP/MRCP session at the same time for the same call. This doesn't matter: we get/send RTP packets from/to the ip:port specified in the SDP.
+
+after the MRCP support gets ready then we can add support for SR/SS at google.apis.
+
+
+To simplify development, let's use an actor library (Nact).
+
+
+Actor hierarchy:
+
+  - root_actor creates:
+    - sip_server creates (SIP processing is simple and there is no need for a sip_session_handler)
+    - mrcp_server creates:
+      - mrcp_connection_handler (obs: the same connection can be used to issue commands for different channels)
+    - http_server
+
+(http_server will be for administration/monitoring)
+
+Basic processing:
+  - MRCP client sends SIP INVITE to sip_server
+  - sip_server gets INVITE and extracts the call_id
+  - sip_server creates sip_connection_handler passing the sip_stack as parameter (as it is needed to send messages).
+  - sip_server extracts
+      - call_id (will be set to channel_identifier in MRCP messages to simplify tracking)
+      - resource (speechsynth|speechrecog)
+      - remote rtp ip and port
+  - sip_server informs mrcp_server of session creation (uses call_id as key) with [resource, local_rtp_ip, local_rtp_port, remote_rtp_ip, remote_rtp_port]
+  - sip_server replies with '200 OK' to INVITE
+  - MRCP client contacts mrcp_server sending channel_identifier (same as SIP call_id@resource)
+  - mrcp_server confirms the session exists and creates mrcp_connection_handler with session data
+  - mrcp_connection_handler checks the type or resource and process it.
+
+At this point we will simply create the MRCP basic processing. So we will process the request locally by using gstreamer using node-gir as explained in the draft.
+So, mrcp_connection_handler will setup a gstreamer pipe with plugin dtmf or dtmfsrc, get commands and notify events.
+
+
+=====================================================
+2020/02/06 takeshi
+
+Regarding Google SpeechSynthesis we can use:
+  audioEncoding: LINEAR16 (Uncompressed 16-bit signed little-endian samples (Linear PCM). Audio content returned as LINEAR16 also contains a WAV header.)
+  sampleRateHertz: TO VERIFY
+  https://cloud.google.com/text-to-speech/docs/reference/rest/v1/text/synthesize#AudioEncoding
+
+
