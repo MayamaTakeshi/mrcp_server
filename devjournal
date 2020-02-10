@@ -56,4 +56,15 @@ Regarding Google SpeechSynthesis we can use:
   sampleRateHertz: TO VERIFY
   https://cloud.google.com/text-to-speech/docs/reference/rest/v1/text/synthesize#AudioEncoding
 
+=====================================================
+2020/02/10 takeshi
+
+We planned to use gstreamer via node-gir. However, node-gir is a fork from gir and both are not maintained anymore.
+But there is node-gtk which includes Gst support.
+
+  apt install libgirepository1.0-dev gstreamer1.0-tools gstreamer1.0-plugins-good
+
+
+
+
 
