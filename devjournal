@@ -62,7 +62,12 @@ Regarding Google SpeechSynthesis we can use:
 We planned to use gstreamer via node-gir. However, node-gir is a fork from gir and both are not maintained anymore.
 But there is node-gtk which includes Gst support.
 
-  apt install libgirepository1.0-dev gstreamer1.0-tools gstreamer1.0-plugins-good
+  apt install libgirepository1.0-dev gstreamer1.0-tools gstreamer1.0-plugins-good gstreamer1.0-plugins-bad libgtk-3-dev
+
+However, it will not work on non-desktop servers as currently it is necessary to use Gtk to run the main loop.
+So, one alternative would be to use vala-object (https://github.com/antono/vala-object). However, it uses gir and so it will not work either:
+  $ grep gir package.json 
+    "gir": "*"
 
 
 
