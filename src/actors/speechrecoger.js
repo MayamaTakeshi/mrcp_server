@@ -16,14 +16,34 @@ module.exports = (parent) => spawn(
 		if(msg.type == MT.START) {
 			return state
 		} else if(msg.type == MT.MRCP_MESSAGE) {
-			if(msg.data.method == 'SPEAK') {
+			if(msg.data.method == 'DEFINE-GRAMMAR') {
+				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success'})
+				u.safe_write(msg.conn, response)
+			} else if(msg.data.method == 'RECOGNIZE') {
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier']})
 				u.safe_write(msg.conn, response)
+
+				var session_string = msg.data.body
+
 				state.completion_timer = setTimeout(() => {
-					var event = mrcp.builder.build_event('SPEAK-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'Completion-Cause': '000 normal'})
+					var event = mrcp.builder.build_event('START-OF-INPUT', msg.data.request_id, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier'], 'input-type': 'speech'})
 					u.safe_write(msg.conn, event)
-					state.completion_timer = null
-				}, 2000)
+
+					var body = `<?xml version="1.0"?>
+<result>
+  <interpretation grammar="${session_string} confidence="0.96">
+    <instance>お元気ですか</instance>
+    <input mode="speech">お元気ですか</input>
+  </interpretation>
+</result>`
+					var content_length = body.length
+
+					state.completion_timer = setTimeout(() => {
+						var event = mrcp.builder.build_event('RECOGNITION-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success', 'content-type': 'application/x-nlsml', 'content-length': content_length})
+						u.safe_write(msg.conn, event)
+						state.completion_timer = null
+					}, 5000)
+				}, 500)
 			} else if(msg.data.method == 'STOP') {
 				if(state.completion_timer) {
 					clearTimeout(state.completion_timer)	
