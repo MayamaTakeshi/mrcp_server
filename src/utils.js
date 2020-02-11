@@ -53,11 +53,23 @@ function parse_sdp(s) {
 	return sdp
 }
 
+var safe_write = (conn, msg) => {
+	try {
+		conn.write(msg)
+	} catch(e) {
+		console.error("safe_write catched:")
+		console.error(e)
+	}
+}
+
 module.exports = {
 	parse_sdp: parse_sdp,
 
 	fn: (filepath) => {
 		return path.basename(filepath)
 	},
+
+	safe_write: safe_write,
 }
+
 

@@ -6,16 +6,18 @@
   "scripts": {
     "test": "./node_modules/jest/bin/jest.js tests/unit"
   },
-  "author": "MayamaTakesh",
+  "author": "MayamaTakeshi",
   "repository": "https://MayamaTakeshi@github.com/MayamaTakeshi/mrcp_server",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/speech": "^3.6.0",
     "collections": "^5.1.9",
     "config": "^3.2.5",
     "data-matching": "^1.23.0",
     "mrcp": "^1.1.0",
     "nact": "^7.2.2",
     "node-gtk": "^0.3.0",
+    "node-rtp": "^0.1.1",
     "sip": "0.0.6"
   },
   "devDependencies": {

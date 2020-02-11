@@ -69,6 +69,111 @@ So, one alternative would be to use vala-object (https://github.com/antono/vala-
   $ grep gir package.json 
     "gir": "*"
 
+=====================================================
+2020/02/11 takeshi
+
+Converting wav to raw:
+
+$ play yosemitesam.wav 
+play WARN alsa: can't encode 0-bit Unknown or not applicable
+
+yosemitesam.wav:
+
+ File Size: 19.8k     Bit Rate: 64.2k
+  Encoding: u-law         
+  Channels: 1 @ 14-bit   
+Samplerate: 8000Hz       
+Replaygain: off         
+  Duration: 00:00:02.46  
+
+In:100%  00:00:02.46 [00:00:00.00] Out:19.7k [!=====|=====!]        Clip:0    
+Done.
+
+$ sox yosemitesam.wav -e unsigned ys.raw
+
+$ play -t raw -r 8000 -e unsigned -b 8 -c 1 ys.raw 
+play WARN alsa: can't encode 0-bit Unknown or not applicable
+
+ys.raw:
+
+ File Size: 19.7k     Bit Rate: 64.0k
+  Encoding: Unsigned PCM  
+  Channels: 1 @ 8-bit    
+Samplerate: 8000Hz       
+Replaygain: off         
+  Duration: 00:00:02.46  
+
+In:100%  00:00:02.46 [00:00:00.00] Out:19.7k [!=====|=====!]        Clip:0    
+Done.
+
+
+For reference, we use this file:
+  https://github.com/googleapis/nodejs-speech/blob/master/samples/resources/audio.raw
+
+which plays properly this way:
+
+$ play -t raw -r 16000 -e signed -b 16 -c 1 nodejs-speech/samples/resources/audio.raw 
+play WARN alsa: can't encode 0-bit Unknown or not applicable
+
+nodejs-speech/samples/resources/audio.raw:
+
+ File Size: 58.0k     Bit Rate: 256k
+  Encoding: Signed PCM    
+  Channels: 1 @ 16-bit   
+Samplerate: 16000Hz      
+Replaygain: off         
+  Duration: 00:00:01.81  
+
+In:100%  00:00:01.81 [00:00:00.00] Out:29.0k [ =====|===== ]        Clip:0    
+Done.
+
+However, from the PSTN we will get sample rate of 8000. So we resampled it:
+
+$ sox nodejs-speech/samples/resources/audio.raw -t raw -r 8000 -e signed -b 16 -c 1 a.raw
+
+$ play -t raw -r 8000 -e signed -b 16 -c 1 a.raw
+play WARN alsa: can't encode 0-bit Unknown or not applicable
+
+a.raw:
+
+ File Size: 29.0k     Bit Rate: 128k
+  Encoding: Signed PCM    
+  Channels: 1 @ 16-bit   
+Samplerate: 8000Hz       
+Replaygain: off         
+  Duration: 00:00:01.81  
+
+In:100%  00:00:01.81 [00:00:00.00] Out:14.5k [ =====|===== ]        Clip:0    
+Done.
+
+
+But also, we will get it usually as mu-law.
+So we tested conversion to mu-law and it worked:
+
+$ sox -t raw -r 16000 -e signed -b 16 -c 1 nodejs-speech/samples/resources/audio.raw -t raw -r 8000 -e mu-law -b 8 -c 1 a2.raw
+
+$ play -t raw -r 8000 -e mu-law -b 8 -c 1 a2.raw
+play WARN alsa: can't encode 0-bit Unknown or not applicable
+
+a2.raw:
+
+ File Size: 14.5k     Bit Rate: 64.0k
+  Encoding: u-law         
+  Channels: 1 @ 14-bit   
+Samplerate: 8000Hz       
+Replaygain: off         
+  Duration: 00:00:01.81  
+
+In:100%  00:00:01.81 [00:00:00.00] Out:14.5k [ =====|===== ]        Clip:0    
+Done.
+
+$ node a.js 
+Transcription: How old is the Brooklyn Bridge?
+
+$ grep -i -E 'encoding|rate' a.js
+  // The audio file's encoding, sample rate in hertz, and BCP-47 language code
+    encoding: 'MULAW',
+    sampleRateHertz: 8000,
 
 
 

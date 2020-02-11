@@ -15,7 +15,7 @@ const registrar = require('../registrar.js')
 const config = require('config')
 
 const sdp_matcher = dm.partial_match({
-	connection: { ip: dm.collect('rtp_ip') },
+	connection: { ip: dm.collect('remote_rtp_ip') },
 	media: dm.unordered_list([
 		{
 			type: 'application',
@@ -27,7 +27,7 @@ const sdp_matcher = dm.partial_match({
 		},
 		{
 			type: 'audio',
-			port: dm.collect('rtp_port'),
+			port: dm.collect('remote_rtp_port'),
 			protocol: 'RTP/AVP',
 			payloads: dm.collect("rtp_payloads"),
 		}
@@ -58,61 +58,44 @@ var rstring = () => {
 var process_incoming_call = (state, req) => {
 	logger.log('info', 'process_incoming_call')
 
-	var rtp_port = state.rtp_ports.shift()
-	if(!rtp_port) {
+	var local_rtp_port = state.rtp_ports.shift()
+	if(!local_rtp_port) {
 		state.sip_stack.send(sip.makeResponse(req, 500, 'No RTP port available'))
 		return
 	}
 
 	var data = {
 		uuid: req.headers['call-id'],
-		local_rtp_port: rtp_port,
+		local_rtp_port: local_rtp_port,
 	}
 
 	var offer_sdp = u.parse_sdp(req.content)
-
-	logger.log('info', "p2")
 
 	if(!sdp_matcher(offer_sdp, data)) {
 		state.sip_stack.send(sip.makeResponse(req, 400, 'Invalid SDP'))
 		return
 	}
 
-	logger.log('info', "p3")
+	dispatch(state.mrcp_server, {type: MT.SESSION_CREATED, data: data})
 
-	dispatch(state.mrcp_server, {type: MT.REQUEST_CREATED, data: data})
-
-	logger.log('info', "p4")
-
-	var answer_sdp = gen_sdp(config.local_ip_address, config.mrcp_port, rtp_port, data.connection, data.uuid, data.resource)
-
-	logger.log('info', "p5")
+	var answer_sdp = gen_sdp(config.local_ip_address, config.mrcp_port, local_rtp_port, data.connection, data.uuid, data.resource)
 
 	var res = sip.makeResponse(req, 200, 'OK')
-	logger.log('info', "p6")
 
 	res.headers.to.params.tag = rstring()
 
-	logger.log('info', "p7")
 	res.headers['record-route'] = req.headers['record-route']
-	logger.log('info', "p8")
 	res.headers.contact = [{uri: `sip:mrcp_server@${config.local_ip_address}:${config.sip_port}`}]
-	logger.log('info', "p9")
 	res.headers['content-type'] = 'application/sdp'
-	logger.log('info', "p10")
 	res.content = answer_sdp
-	logger.log('info', "p11")
 
-	logger.log('info', `Sending res`)
 	state.sip_stack.send(res,
 		function(res) {
 			logger.log('info', "got callback to res sent to out-of-dialog INVITE on sip stack")
 		}
 	)
 
-	logger.log('info', "p12")
 	registrar[data.uuid] = data
-	logger.log('info', "p13")
 }
 
 var process_in_dialog_request = (state, req) => {
@@ -133,7 +116,7 @@ var process_in_dialog_request = (state, req) => {
 
 		var uuid = req.headers['call-id']
 
-		dispatch(state.mrcp_server, {type: MT.REQUEST_TERMINATED, uuid: uuid})
+		dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid})
 
 		logger.log('info', `BYE call_id=${uiid}`)
 		if(registrar[uuid]) {
