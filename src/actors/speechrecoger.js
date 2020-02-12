@@ -31,7 +31,7 @@ module.exports = (parent) => spawn(
 
 					var body = `<?xml version="1.0"?>
 <result>
-  <interpretation grammar="${session_string} confidence="0.96">
+  <interpretation grammar="${session_string}" confidence="0.96">
     <instance>お元気ですか</instance>
     <input mode="speech">お元気ですか</input>
   </interpretation>
@@ -39,7 +39,7 @@ module.exports = (parent) => spawn(
 					var content_length = body.length
 
 					state.completion_timer = setTimeout(() => {
-						var event = mrcp.builder.build_event('RECOGNITION-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success', 'content-type': 'application/x-nlsml', 'content-length': content_length})
+						var event = mrcp.builder.build_event('RECOGNITION-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success', 'content-type': 'application/x-nlsml', 'content-length': content_length}, body)
 						u.safe_write(msg.conn, event)
 						state.completion_timer = null
 					}, 5000)
