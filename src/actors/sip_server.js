@@ -1,6 +1,7 @@
 const {spawn, dispatch} = require('nact')
 
 const sip = require('sip')
+const udp = require('dgram')
 const uuid_v4 = require('uuid').v4
 const Deque = require('collections/deque')
 
@@ -73,6 +74,24 @@ var process_incoming_call = (state, req) => {
 
 	if(!sdp_matcher(offer_sdp, data)) {
 		state.sip_stack.send(sip.makeResponse(req, 400, 'Invalid SDP'))
+		return
+	}
+
+	try {
+		var rtp_socket = udp.createSocket({type: 'udp4'})
+
+		rtp_socket.on('message', function (msg, rinfo) {
+			var payload = msg.slice(20) // Assume 20 bytes for RTP header
+			rtp_socket.emit('data', payload)
+		})
+
+		rtp_socket.bind(data.local_rtp_port, config.local_ip_address)
+
+		data.rtp_socket = rtp_socket
+	} catch (e) {
+		console.dir(e)
+		logger.log('error', e)
+		state.sip_stack.send(sip.makeResponse(req, 500, 'Failed to create local RTP socket'))
 		return
 	}
 

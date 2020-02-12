@@ -48,9 +48,9 @@ module.exports = (parent) => spawn(
 
 			var handler
 			if(msg.data.resource == 'speechsynth') {
-				handler = speechsynther(ctx.self)
+				handler = speechsynther(ctx.self, msg.data.uuid)
 			} else {
-				handler = speechrecoger(ctx.self)
+				handler = speechrecoger(ctx.self, msg.data.uuid)
 			}
 			registrar[msg.data.uuid].handler = handler
 			dispatch(handler, {type: MT.START, data: msg.data})
