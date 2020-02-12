@@ -81,7 +81,7 @@ var process_incoming_call = (state, req) => {
 		var rtp_socket = udp.createSocket({type: 'udp4'})
 
 		rtp_socket.on('message', function (msg, rinfo) {
-			var payload = msg.slice(20) // Assume 20 bytes for RTP header
+			var payload = msg.slice(12) // Assume 12 bytes for RTP header
 			rtp_socket.emit('data', payload)
 		})
 

@@ -35,7 +35,8 @@ var setup_speechrecog = (msg, session_string) => {
 	var config = {
 		encoding: "MULAW",
 		sampleRateHertz: 8000,
-		languageCode: msg.data.headers['speech-language'],
+		//languageCode: msg.data.headers['speech-language'],
+		languageCode: 'en', 
 	}
 
 	var request = {
@@ -49,6 +50,7 @@ var setup_speechrecog = (msg, session_string) => {
 		.streamingRecognize(request)
 		.on('error', (error) => { console.error(`recognizeStream error: ${error}`); process.exit(1) })
 		.on('data', data => {
+			console.log(`RecognizeStream on data: ${data}`)
 			send_recognition_complete(msg, session_string, data.results[0])
 		})
 
@@ -76,6 +78,7 @@ module.exports = (parent, uuid) => spawn(
 				var recognizeStream = setup_speechrecog(msg, session_string)
 
 				registrar[uuid].rtp_socket.on('data', data => {
+					console.log(data)
 					recognizeStream.write(data.payload)
 				})
 

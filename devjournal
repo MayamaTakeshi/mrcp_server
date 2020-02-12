@@ -175,6 +175,11 @@ $ grep -i -E 'encoding|rate' a.js
     encoding: 'MULAW',
     sampleRateHertz: 8000,
 
+=====================================================
+2020/02/12 takeshi
 
+About silence in RTP:
+  https://serverfault.com/questions/771924/detect-silence-in-rtp-payload
+ee tested with 0x7F and 0xFF in PCMU and both worked (see research/google_sr_file_stream/)
 
 
