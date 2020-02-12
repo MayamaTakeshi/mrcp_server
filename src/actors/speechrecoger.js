@@ -9,7 +9,7 @@ const config = require('config')
 
 const registrar = require('../registrar.js')
 
-const speech = require('@google-cloud/speech');
+const speech = require('@google-cloud/speech')
 
 var send_start_of_input = (msg) => {
 	var event = mrcp.builder.build_event('START-OF-INPUT', msg.data.request_id, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier'], 'input-type': 'speech'})
@@ -36,7 +36,7 @@ var setup_speechrecog = (msg, session_string) => {
 		encoding: "MULAW",
 		sampleRateHertz: 8000,
 		//languageCode: msg.data.headers['speech-language'],
-		languageCode: 'en', 
+		languageCode: 'en-US', 
 	}
 
 	var request = {
@@ -50,8 +50,8 @@ var setup_speechrecog = (msg, session_string) => {
 		.streamingRecognize(request)
 		.on('error', (error) => { console.error(`recognizeStream error: ${error}`); process.exit(1) })
 		.on('data', data => {
-			console.log(`RecognizeStream on data: ${data}`)
-			send_recognition_complete(msg, session_string, data.results[0])
+			console.log(`RecognizeStream on data: ${JSON.stringify(data)}`)
+			send_recognition_complete(msg, session_string, data.results[0].alternatives[0].transcript)
 		})
 
 	return recognizeStream
@@ -78,8 +78,8 @@ module.exports = (parent, uuid) => spawn(
 				var recognizeStream = setup_speechrecog(msg, session_string)
 
 				registrar[uuid].rtp_socket.on('data', data => {
-					console.log(data)
-					recognizeStream.write(data.payload)
+					//console.log(data)
+					recognizeStream.write(data)
 				})
 
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier']})
