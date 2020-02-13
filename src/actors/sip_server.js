@@ -1,7 +1,7 @@
 const {spawn, dispatch} = require('nact')
 
 const sip = require('sip')
-const udp = require('dgram')
+//const udp = require('dgram')
 const uuid_v4 = require('uuid').v4
 const Deque = require('collections/deque')
 
@@ -14,6 +14,8 @@ const dm = require('data-matching')
 const registrar = require('../registrar.js')
 
 const config = require('config')
+
+const RtpSession = require('../rtp-session.js')
 
 const sdp_matcher = dm.partial_match({
 	connection: { ip: dm.collect('remote_rtp_ip') },
@@ -78,6 +80,7 @@ var process_incoming_call = (state, req) => {
 	}
 
 	try {
+		/*
 		var rtp_socket = udp.createSocket({type: 'udp4'})
 
 		rtp_socket.on('message', function (msg, rinfo) {
@@ -88,6 +91,17 @@ var process_incoming_call = (state, req) => {
 		rtp_socket.bind(data.local_rtp_port, config.local_ip_address)
 
 		data.rtp_socket = rtp_socket
+		*/
+
+		var rtp_session = new RtpSession({
+			local_ip: config.local_ip_address,
+			local_port: data.local_rtp_port,
+			remote_ip: data.remote_rtp_ip, 
+			remote_port: data.remote_rtp_port,
+		})
+
+		data.rtp_session = rtp_session
+
 	} catch (e) {
 		console.dir(e)
 		logger.log('error', e)

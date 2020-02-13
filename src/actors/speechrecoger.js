@@ -31,7 +31,7 @@ var send_recognition_complete = (msg, session_string, result) => {
 	u.safe_write(msg.conn, event)
 }
 
-var setup_speechrecog = (msg, session_string) => {
+const setup_speechrecog = (msg, session_string) => {
 	var config = {
 		encoding: "MULAW",
 		sampleRateHertz: 8000,
@@ -41,7 +41,8 @@ var setup_speechrecog = (msg, session_string) => {
 
 	var request = {
 		config,
-		interimResults: false, //Get interim results from stream
+		interimResults: true, //Get interim results from stream
+		singleUtterance: true,
 	}
 
 	const client = new speech.SpeechClient()
@@ -68,7 +69,7 @@ module.exports = (parent, uuid) => spawn(
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success'})
 				u.safe_write(msg.conn, response)
 			} else if(msg.data.method == 'RECOGNIZE') {
-				if(! uuid in registrar) {
+				if(!(uuid in registrar)) {
 					var response = mrcp.builder.build_response(msg.data.request_id, 405, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
 					u.safe_write(msg.conn, response)
 					return
@@ -77,7 +78,7 @@ module.exports = (parent, uuid) => spawn(
 				var session_string = msg.data.body
 				var recognizeStream = setup_speechrecog(msg, session_string)
 
-				registrar[uuid].rtp_socket.on('data', data => {
+				registrar[uuid].rtp_session.on('data', data => {
 					//console.log(data)
 					recognizeStream.write(data)
 				})

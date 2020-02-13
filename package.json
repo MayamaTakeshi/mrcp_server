@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@google-cloud/speech": "^3.6.0",
+    "@google-cloud/text-to-speech": "^2.2.0",
     "collections": "^5.1.9",
     "config": "^3.2.5",
     "data-matching": "^1.23.0",

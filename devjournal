@@ -182,4 +182,16 @@ About silence in RTP:
   https://serverfault.com/questions/771924/detect-silence-in-rtp-payload
 ee tested with 0x7F and 0xFF in PCMU and both worked (see research/google_sr_file_stream/)
 
+=====================================================
+2020/02/13 takeshi
+
+Google TTS reference:
+  https://cloud.google.com/text-to-speech/docs/reference/rest/v1/text/synthesize#audioconfig
+We should use audioEncoding=LINEAR16 and (if possible) sampleRateHertz=8000
+It seems Google TTS doesn't support streaming so we will dump the data to a temp file and use fs.createFileStream().
+Then we will read XXX bytes each 20 ms, convert it to mu-law (http://www.speech.cs.cmu.edu/comp.speech/Section2/Q2.7.html) and send it as RTP
+
+Here is a reference about gstreamer:
+  https://stackoverflow.com/questions/55474847/creating-a-mulaw-audio-file-from-l16
+
 
