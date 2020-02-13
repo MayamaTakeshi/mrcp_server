@@ -3,6 +3,8 @@ const mrcp = require('mrcp')
 
 const fs = require('fs')
 
+const wav = require('wav')
+
 const logger = require('../logger.js')
 const u = require('../utils.js')
 const MT = require('../message_types.js')
@@ -11,6 +13,8 @@ const config = require('config')
 
 const registrar = require('../registrar.js')
 
+const stream = require('stream')
+
 const setup_speechsynth = (ctx, uuid, data, conn) => {
 	const textToSpeech = require('@google-cloud/text-to-speech');
 	const fs = require('fs');
@@ -18,16 +22,15 @@ const setup_speechsynth = (ctx, uuid, data, conn) => {
 
 	const client = new textToSpeech.TextToSpeechClient();
 
-	const text = "Hello. Good Morning. Let's get some breakfast."
 	const outputFile = `/root/tmp/${uuid}.l16`
 
 	const request = {
 		input: {
-			text: text
+			text: data.body,
 		},
 		voice: {
-			languageCode: 'en-US',
-			ssmlGender: 'FEMALE',
+			languageCode: data.headers['speech-language'],
+			name: data.headers['voice-name'],
 		},
 		audioConfig: {
 			audioEncoding: 'LINEAR16',
@@ -35,21 +38,45 @@ const setup_speechsynth = (ctx, uuid, data, conn) => {
 		}
 	}
 
+	console.dir(request)
+
 	client.synthesizeSpeech(request, null, (err, response) => {
 		if(err) {
 			logger.log('error', `synthesizeSpeech error: ${err}`)
 			return
 		}
-		fs.writeFile(outputFile, response.audioContent, null, (err) => {
+
+		var bufferStream = new stream.PassThrough()
+
+		bufferStream.end(response.audioContent)
+
+		var writeStream = fs.createWriteStream(outputFile)
+		var wavReader = new wav.Reader()
+
+		wavReader.on('format', (format) => {
+			wavReader.pipe(writeStream)	
+		})
+
+		writeStream.on('error', (err) => {
 			if(err) {
 				logger.log('error', `Audio content failed to be written to file ${outputFile}. err=${err}`)
-			} else {
-				logger.log('info', `Audio content written to file: ${outputFile}`)
-				dispatch(ctx.self, {type: MT.TTS_FILE_READY, data: data, conn: conn, path: outputFile})
 			}
 		})
+
+		writeStream.on('finish', () => {
+			logger.log('info', `Audio content written to file: ${outputFile}`)
+			dispatch(ctx.self, {type: MT.TTS_FILE_READY, data: data, conn: conn, path: outputFile})
+		})
+
+		bufferStream.pipe(wavReader)
 	})
 }
+
+// Original C code for linear2ulaw by:
+//** Craig Reese: IDA/Supercomputing Research Center
+//** Joe Campbell: Department of Defense
+//** 29 September 1989
+// http://www.speech.cs.cmu.edu/comp.speech/Section2/Q2.7.html
 
 const exp_lut = [0,0,1,1,2,2,2,2,3,3,3,3,3,3,3,3,
 				 4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,

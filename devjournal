@@ -203,11 +203,13 @@ We were able to make google tts work. However, we can hear a 'click' in the begi
     LINEAR16:  Uncompressed 16-bit signed little-endian samples (Linear PCM). Audio content returned as LINEAR16 also contains a WAV header.
   https://cloud.google.com/text-to-speech/docs/reference/rest/v1/text/synthesize#AudioEncoding
 
-So we need deal with this header before processing the payload.
+So we need deal to with this header before processing the payload.
 
 Parsing a wav file in c:
   http://truelogic.org/wordpress/2015/09/04/parsing-a-wav-file-in-c/
 
 (however we might find a node module to decode wav files).
+
+UPDATE: issue was solved: we used node module 'wav' to strip the wav header before saving the TTS result.
 
 

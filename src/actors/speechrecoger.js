@@ -31,12 +31,12 @@ var send_recognition_complete = (msg, session_string, result) => {
 	u.safe_write(msg.conn, event)
 }
 
-const setup_speechrecog = (msg, session_string) => {
+const setup_speechrecog = (msg, session_string, state) => {
 	var config = {
 		encoding: "MULAW",
 		sampleRateHertz: 8000,
-		//languageCode: msg.data.headers['speech-language'],
-		languageCode: 'en-US', 
+		languageCode: msg.data.headers['speech-language'],
+		//languageCode: 'en-US', 
 	}
 
 	var request = {
@@ -51,8 +51,10 @@ const setup_speechrecog = (msg, session_string) => {
 		.streamingRecognize(request)
 		.on('error', (error) => { console.error(`recognizeStream error: ${error}`); process.exit(1) })
 		.on('data', data => {
+			recognizeStream.end()
 			console.log(`RecognizeStream on data: ${JSON.stringify(data)}`)
 			send_recognition_complete(msg, session_string, data.results[0].alternatives[0].transcript)
+			state.recognizeStream = null
 		})
 
 	return recognizeStream
@@ -76,11 +78,13 @@ module.exports = (parent, uuid) => spawn(
 				}
 
 				var session_string = msg.data.body
-				var recognizeStream = setup_speechrecog(msg, session_string)
+				state.recognizeStream = setup_speechrecog(msg, session_string, state)
 
 				registrar[uuid].rtp_session.on('data', data => {
 					//console.log(data)
-					recognizeStream.write(data)
+					if(state.recognizeStream) {
+						state.recognizeStream.write(data)
+					}
 				})
 
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier']})
