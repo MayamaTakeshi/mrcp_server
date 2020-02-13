@@ -55,7 +55,9 @@ function parse_sdp(s) {
 
 var safe_write = (conn, msg) => {
 	try {
-		conn.write(msg)
+		if(!conn.destroyed) {
+			conn.write(msg)
+		}
 	} catch(e) {
 		console.error("safe_write catched:")
 		console.error(e)

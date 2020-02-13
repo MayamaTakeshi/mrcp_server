@@ -31,7 +31,7 @@ const setup_speechsynth = (ctx, uuid, data, conn) => {
 		},
 		audioConfig: {
 			audioEncoding: 'LINEAR16',
-			sampleRateHertz: 8000,
+			sampleRateHertz: 16000,
 		}
 	}
 
@@ -149,12 +149,14 @@ module.exports = (parent, uuid) => spawn(
 						}
 
 						for(var i=0 ; i<160 ; i++) {
-							buf2[i] = linear2ulaw(buf[i*2] << 8 + buf[i*2+1])
+							buf2[i] = linear2ulaw((buf[i*2+1] << 8 ) + buf[i*2])
 						}
 						
 						registrar[uuid].rtp_session.send_payload(buf2)
+
+						//registrar[uuid].rtp_session.send_payload(buf)
 					})
-				}, 20)
+				}, 19)
 			})
 			return state
 		} else {

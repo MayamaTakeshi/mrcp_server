@@ -98,10 +98,15 @@ var process_incoming_call = (state, req) => {
 			local_port: data.local_rtp_port,
 			remote_ip: data.remote_rtp_ip, 
 			remote_port: data.remote_rtp_port,
+			payload_type: 0,
 		})
 
 		data.rtp_session = rtp_session
 
+		rtp_session.on('error', (err) => {
+			console.log('error', `Error for rtp_session ${data.uuid}: ${err}`)
+			data.rtp_session = null
+		})
 	} catch (e) {
 		console.dir(e)
 		logger.log('error', e)
