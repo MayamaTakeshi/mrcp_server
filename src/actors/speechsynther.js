@@ -31,11 +31,15 @@ const setup_speechsynth = (ctx, uuid, data, conn) => {
 		},
 		audioConfig: {
 			audioEncoding: 'LINEAR16',
-			sampleRateHertz: 16000,
+			sampleRateHertz: 8000,
 		}
 	}
 
 	client.synthesizeSpeech(request, null, (err, response) => {
+		if(err) {
+			logger.log('error', `synthesizeSpeech error: ${err}`)
+			return
+		}
 		fs.writeFile(outputFile, response.audioContent, null, (err) => {
 			if(err) {
 				logger.log('error', `Audio content failed to be written to file ${outputFile}. err=${err}`)
@@ -84,7 +88,9 @@ const linear2ulaw = (sample) => {
 
 /*
 //#ifdef ZEROTRAP
+*/
 	if (ulawbyte == 0) ulawbyte = 0x02;	// optional CCITT trap
+/*
 //#endif
 */
 
@@ -149,7 +155,8 @@ module.exports = (parent, uuid) => spawn(
 						}
 
 						for(var i=0 ; i<160 ; i++) {
-							buf2[i] = linear2ulaw((buf[i*2+1] << 8 ) + buf[i*2])
+							// L16 little-endian
+							buf2[i] = linear2ulaw((buf[i*2+1] << 8) + buf[i*2])
 						}
 						
 						registrar[uuid].rtp_session.send_payload(buf2)
