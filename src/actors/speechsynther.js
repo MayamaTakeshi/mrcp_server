@@ -1,4 +1,4 @@
-const {spawn, dispatch} = require('nact')
+const {spawn, dispatch, stop} = require('nact')
 const mrcp = require('mrcp')
 
 const fs = require('fs')
@@ -14,6 +14,11 @@ const config = require('config')
 const registrar = require('../registrar.js')
 
 const stream = require('stream')
+
+const stop_myself = (state, ctx) => {
+	stop_speak(state)
+	stop(ctx.self)
+}
 
 const setup_speechsynth = (ctx, uuid, data, conn) => {
 	const textToSpeech = require('@google-cloud/text-to-speech');
@@ -60,6 +65,7 @@ const setup_speechsynth = (ctx, uuid, data, conn) => {
 		writeStream.on('error', (err) => {
 			if(err) {
 				logger.log('error', `Audio content failed to be written to file ${outputFile}. err=${err}`)
+				return
 			}
 		})
 
@@ -70,6 +76,17 @@ const setup_speechsynth = (ctx, uuid, data, conn) => {
 
 		bufferStream.pipe(wavReader)
 	})
+}
+
+var stop_speak = (state) => {
+	if(state.path) {
+		fs.unlink(state.path, () => {})
+		state.path = null
+	}
+	if(state.timer_id) {
+		clearInterval(state.timer_id)
+		state.timer_id = null
+	}
 }
 
 // Original C code for linear2ulaw by:
@@ -127,7 +144,7 @@ const linear2ulaw = (sample) => {
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//logger.log('info', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
+		logger.log('info', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
 		if(msg.type == MT.START) {
 			return state
 		} else if(msg.type == MT.MRCP_MESSAGE) {
@@ -139,10 +156,13 @@ module.exports = (parent, uuid) => spawn(
 			} else if(msg.data.method == 'STOP') {
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
 				u.safe_write(msg.conn, response)
+				stop_speak(state)
 			}
 			return state
 		} else if(msg.type == 'TTS_FILE_READY') {
 			if(!(uuid in registrar)) return
+
+			state.path = msg.path
 
 			fs.open(msg.path, 'r', (err, fd) => {
 				if(err) {
@@ -153,21 +173,21 @@ module.exports = (parent, uuid) => spawn(
 				var buf = Buffer.alloc(320)
 				var buf2 = Buffer.alloc(160)
 
-				var tid = setInterval(() => {
+				state.timer_id = setInterval(() => {
 					if(!(uuid in registrar)) {
-						clearInterval(tid)
+						stop_speak(state)
 						return
 					}
 
 					fs.read(fd, buf, 0, 320, null, (err, len) => {
 						if(err) {
 							logger.log('error', `Reading ${msg.path} failed with ${err}`)
-							clearInterval(tid)
+							stop_speak(state)
 							return
 						}
 
 						if(!(uuid in registrar)) {
-							clearInterval(tid)
+							stop_speak(state)
 							return
 						}
 
@@ -177,8 +197,8 @@ module.exports = (parent, uuid) => spawn(
 							logger.log('info', `Reading ${msg.path} reached end of file`)
 							var event = mrcp.builder.build_event('SPEAK-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'Completion-Cause': '000 normal'})
 							u.safe_write(msg.conn, event)
-							clearInterval(tid)
-							fs.unlink(msg.path, () => {})
+
+							stop_speak(state)
 							return
 						}
 
@@ -188,12 +208,13 @@ module.exports = (parent, uuid) => spawn(
 						}
 						
 						registrar[uuid].rtp_session.send_payload(buf2)
-
-						//registrar[uuid].rtp_session.send_payload(buf)
 					})
-				}, 19)
+				}, 19) // ptime=20ms (so we will use 19ms to minimize lag)
 			})
 			return state
+		} else if(msg.type == MT.TERMINATE) {
+			stop_myself(state, ctx)
+			return
 		} else {
 			logger.log('error', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
 			return state

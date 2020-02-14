@@ -1,4 +1,4 @@
-const {spawn, dispatch} = require('nact')
+const {spawn, dispatch, stop} = require('nact')
 const mrcp = require('mrcp')
 
 const logger = require('../logger.js')
@@ -10,6 +10,15 @@ const config = require('config')
 const registrar = require('../registrar.js')
 
 const speech = require('@google-cloud/speech')
+
+const stop_myself = (state, ctx) => {
+	if(state.recognizeStream) {
+		state.recognizeStream.end()
+		state.recognizeStream = null
+	}
+
+	stop(ctx.self)
+}
 
 var send_start_of_input = (msg) => {
 	var event = mrcp.builder.build_event('START-OF-INPUT', msg.data.request_id, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier'], 'input-type': 'speech'})
@@ -31,7 +40,7 @@ var send_recognition_complete = (msg, session_string, result, confidence) => {
 	u.safe_write(msg.conn, event)
 }
 
-const setup_speechrecog = (msg, session_string, state) => {
+const setup_speechrecog = (msg, session_string, state, ctx) => {
 	var config = {
 		encoding: "MULAW",
 		sampleRateHertz: 8000,
@@ -51,13 +60,13 @@ const setup_speechrecog = (msg, session_string, state) => {
 		.streamingRecognize(request)
 		.on('error', (error) => { console.error(`recognizeStream error: ${error}`); process.exit(1) })
 		.on('data', data => {
-			recognizeStream.end()
-
 			console.log(`RecognizeStream on data: ${JSON.stringify(data)}`)
+
+			if(data.speechEventType == "END_OF_SINGLE_UTTERANCE" && !data.results) return
+
 			var transcript = data.results[0] ? data.results[0].alternatives[0].transcript : ''
 			var confidence = data.results[0] ? data.results[0].alternatives[0].confidence : 0
 			send_recognition_complete(msg, session_string, transcript, confidence)
-			state.recognizeStream = null
 		})
 
 	return recognizeStream
@@ -66,7 +75,7 @@ const setup_speechrecog = (msg, session_string, state) => {
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//logger.log('info', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
+		logger.log('info', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
 		if(msg.type == MT.START) {
 			return state
 		} else if(msg.type == MT.MRCP_MESSAGE) {
@@ -77,11 +86,12 @@ module.exports = (parent, uuid) => spawn(
 				if(!(uuid in registrar)) {
 					var response = mrcp.builder.build_response(msg.data.request_id, 405, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
 					u.safe_write(msg.conn, response)
+					stop_mysqlf(state, ctx)
 					return
 				}
 
 				var session_string = msg.data.body
-				state.recognizeStream = setup_speechrecog(msg, session_string, state)
+				state.recognizeStream = setup_speechrecog(msg, session_string, state, ctx)
 
 				registrar[uuid].rtp_session.on('data', data => {
 					//console.log(data)
@@ -96,8 +106,12 @@ module.exports = (parent, uuid) => spawn(
 			} else if(msg.data.method == 'STOP') {
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
 				u.safe_write(msg.conn, response)
+				return
 			}
 			return state
+		} else if(msg.type == MT.TERMINATE) {
+			stop_mysqlf(state, ctx)
+			return
 		} else {
 			logger.log('error', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
 			return state
