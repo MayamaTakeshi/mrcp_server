@@ -212,4 +212,9 @@ Parsing a wav file in c:
 
 UPDATE: issue was solved: we used node module 'wav' to strip the wav header before saving the TTS result.
 
+=====================================================
+2020/02/13 takeshi
+
+About writing tests, we need to mock googleapis.
+Check: https://github.com/googleapis/google-api-nodejs-client/issues/258
 

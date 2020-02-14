@@ -16,10 +16,10 @@ var send_start_of_input = (msg) => {
 	u.safe_write(msg.conn, event)
 }
 
-var send_recognition_complete = (msg, session_string, result) => {
+var send_recognition_complete = (msg, session_string, result, confidence) => {
 	var body = `<?xml version="1.0"?>
 <result>
-	<interpretation grammar="${session_string}" confidence="0.96">
+	<interpretation grammar="${session_string}" confidence="${confidence}">
 		<instance>${result}</instance>
 		<input mode="speech">${result}</input>
 	</interpretation>
@@ -41,7 +41,7 @@ const setup_speechrecog = (msg, session_string, state) => {
 
 	var request = {
 		config,
-		interimResults: true, //Get interim results from stream
+		interimResults: false, 
 		singleUtterance: true,
 	}
 
@@ -52,8 +52,11 @@ const setup_speechrecog = (msg, session_string, state) => {
 		.on('error', (error) => { console.error(`recognizeStream error: ${error}`); process.exit(1) })
 		.on('data', data => {
 			recognizeStream.end()
+
 			console.log(`RecognizeStream on data: ${JSON.stringify(data)}`)
-			send_recognition_complete(msg, session_string, data.results[0].alternatives[0].transcript)
+			var transcript = data.results[0] ? data.results[0].alternatives[0].transcript : ''
+			var confidence = data.results[0] ? data.results[0].alternatives[0].confidence : 0
+			send_recognition_complete(msg, session_string, transcript, confidence)
 			state.recognizeStream = null
 		})
 

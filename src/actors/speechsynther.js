@@ -178,6 +178,7 @@ module.exports = (parent, uuid) => spawn(
 							var event = mrcp.builder.build_event('SPEAK-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'Completion-Cause': '000 normal'})
 							u.safe_write(msg.conn, event)
 							clearInterval(tid)
+							fs.unlink(msg.path, () => {})
 							return
 						}
 
