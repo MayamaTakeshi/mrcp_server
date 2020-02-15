@@ -34,11 +34,7 @@ var send_recognition_complete = (msg, session_string, result, confidence) => {
 	</interpretation>
 </result>`
 
-	var b = Buffer.from(body)
-
-	var content_length = Buffer.byteLength(b)
-
-	var event = mrcp.builder.build_event('RECOGNITION-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success', 'content-type': 'application/x-nlsml', 'content-length': content_length}, b)
+	var event = mrcp.builder.build_event('RECOGNITION-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success', 'content-type': 'application/x-nlsml'}, body)
 	u.safe_write(msg.conn, event)
 }
 
