@@ -64,14 +64,20 @@ var safe_write = (conn, msg) => {
 	}
 }
 
+var gen_random_int = (max) => {
+	return Math.floor(Math.random() * Math.floor(max));
+}
+
 module.exports = {
-	parse_sdp: parse_sdp,
+	parse_sdp,
 
 	fn: (filepath) => {
 		return path.basename(filepath)
 	},
 
-	safe_write: safe_write,
+	safe_write,
+
+	gen_random_int,
 }
 
 

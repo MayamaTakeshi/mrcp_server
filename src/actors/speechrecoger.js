@@ -34,9 +34,11 @@ var send_recognition_complete = (msg, session_string, result, confidence) => {
 	</interpretation>
 </result>`
 
-	var content_length = body.length
+	var b = Buffer.from(body)
 
-	var event = mrcp.builder.build_event('RECOGNITION-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success', 'content-type': 'application/x-nlsml', 'content-length': content_length}, body)
+	var content_length = Buffer.byteLength(b)
+
+	var event = mrcp.builder.build_event('RECOGNITION-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success', 'content-type': 'application/x-nlsml', 'content-length': content_length}, b)
 	u.safe_write(msg.conn, event)
 }
 
@@ -58,11 +60,20 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 
 	const recognizeStream = client
 		.streamingRecognize(request)
-		.on('error', (error) => { console.error(`recognizeStream error: ${error}`); process.exit(1) })
+		.on('error', (error) => { 
+			console.error(`recognizeStream error: ${error}`)
+			if(state.recognizeStream) {
+				state.recognizeStream.end()
+			}
+			
+			send_recognition_complete(msg, session_string, '', 0)
+		})
 		.on('data', data => {
 			console.log(`RecognizeStream on data: ${JSON.stringify(data)}`)
 
 			if(data.speechEventType == "END_OF_SINGLE_UTTERANCE" && !data.results) return
+
+			if(!data.results[0]) return
 
 			var transcript = data.results[0] ? data.results[0].alternatives[0].transcript : ''
 			var confidence = data.results[0] ? data.results[0].alternatives[0].confidence : 0
@@ -75,7 +86,8 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		logger.log('info', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
+		//logger.log('info', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
+		logger.log('info', `${u.fn(__filename)} got ${msg.type}`)
 		if(msg.type == MT.START) {
 			return state
 		} else if(msg.type == MT.MRCP_MESSAGE) {
@@ -86,7 +98,7 @@ module.exports = (parent, uuid) => spawn(
 				if(!(uuid in registrar)) {
 					var response = mrcp.builder.build_response(msg.data.request_id, 405, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
 					u.safe_write(msg.conn, response)
-					stop_mysqlf(state, ctx)
+					stop_myself(state, ctx)
 					return
 				}
 
@@ -110,7 +122,7 @@ module.exports = (parent, uuid) => spawn(
 			}
 			return state
 		} else if(msg.type == MT.TERMINATE) {
-			stop_mysqlf(state, ctx)
+			stop_myself(state, ctx)
 			return
 		} else {
 			logger.log('error', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)

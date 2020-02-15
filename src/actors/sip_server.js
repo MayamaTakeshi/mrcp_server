@@ -99,6 +99,7 @@ var process_incoming_call = (state, req) => {
 			remote_ip: data.remote_rtp_ip, 
 			remote_port: data.remote_rtp_port,
 			payload_type: 0,
+			ssrc: u.gen_random_int(0xffffffff),
 		})
 
 		data.rtp_session = rtp_session

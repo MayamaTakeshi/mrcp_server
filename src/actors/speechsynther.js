@@ -144,7 +144,8 @@ const linear2ulaw = (sample) => {
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		logger.log('info', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
+		//logger.log('info', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
+		logger.log('info', `${u.fn(__filename)} got ${msg.type}`)
 		if(msg.type == MT.START) {
 			return state
 		} else if(msg.type == MT.MRCP_MESSAGE) {

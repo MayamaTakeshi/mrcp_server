@@ -11,7 +11,7 @@ class RtpSession {
 			ssrc: opts.ssrc ? opts.ssrc : 0x1234678,
 
 			seq_num: 1,
-			time_stamp: 0,
+			time_stamp: 160,
 		}
 
 		console.log(this._info)
@@ -59,7 +59,8 @@ class RtpSession {
 	send_payload(payload, marker_bit, payload_type) {
 		var buf = Buffer.concat([this._hdr, payload])
 
-		buf[1] = (marker_bit ? marker_bit : 0) << 7 | (payload_type ? payload_type : this._info.payload_type)
+		//buf[1] = (marker_bit ? marker_bit : 0) << 7 | (payload_type ? payload_type : this._info.payload_type)
+		buf[1] = (this._info.seq_num ? 1 : 0) << 7 | (payload_type ? payload_type : this._info.payload_type)
 
 		var seq_num = this._info.seq_num
 		buf[2] = seq_num >>> 8
