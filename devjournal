@@ -203,7 +203,7 @@ We were able to make google tts work. However, we can hear a 'click' in the begi
     LINEAR16:  Uncompressed 16-bit signed little-endian samples (Linear PCM). Audio content returned as LINEAR16 also contains a WAV header.
   https://cloud.google.com/text-to-speech/docs/reference/rest/v1/text/synthesize#AudioEncoding
 
-So we need deal to with this header before processing the payload.
+So we need to deal to with this header before processing the payload.
 
 Parsing a wav file in c:
   http://truelogic.org/wordpress/2015/09/04/parsing-a-wav-file-in-c/
@@ -217,4 +217,135 @@ UPDATE: issue was solved: we used node module 'wav' to strip the wav header befo
 
 About writing tests, we need to mock googleapis.
 Check: https://github.com/googleapis/google-api-nodejs-client/issues/258
+
+=====================================================
+2020/02/18 takeshi
+
+To support DTMF, we can use this module:
+  https://github.com/noffle/goertzel-stream
+However we will need to write something like a dtmf-stream on top of it.
+
+Sample:
+
+$ cat goertzel_stream_wav_test.js
+var goertzel = require('goertzel-stream')
+
+const fs = require('fs');
+const wav = require('wav');
+
+var rs = fs.createReadStream('./1234.wav')
+var reader = new wav.Reader()
+
+freqs = [697, 1209]
+
+
+reader.on('format', function(format) {
+        console.log(format)
+
+        var detect = goertzel(freqs, {sampleRate: format.sampleRate})
+
+        detect.on('toneStart', (tones) => {
+                console.log('Start', tones)
+        })
+
+        detect.on('toneEnd', (tones) => {
+                console.log('End', tones)
+        })
+
+        reader.on('data', (data) => {
+                console.log('reader data')
+                //console.log(data)
+
+                var a = new Float32Array(data)
+
+                // patching because goertzel-stream expects data for write() to come from AudioBuffer
+                a.getChannelData = () => { return a }
+
+                detect.write(a)
+        })
+
+        reader.on('end', () => {
+                console.log('reader end')
+        })
+})
+
+
+rs.pipe(reader)
+
+
+
+$ sox --i 1234.wav 
+
+Input File     : '1234.wav'
+Channels       : 1
+Sample Rate    : 16000
+Precision      : 25-bit
+Duration       : 00:00:01.40 = 22400 samples ~ 105 CDDA sectors
+File Size      : 89.7k
+Bit Rate       : 512k
+Sample Encoding: 32-bit Floating Point PCM
+
+
+
+$ node goertzel_stream_wav_test.js
+{
+  audioFormat: 3,                                                    
+  endianness: 'LE',                           
+  channels: 1,
+  sampleRate: 16000,                                            
+  byteRate: 64000,                                             
+  blockAlign: 4,
+  bitDepth: 32,
+  signed: true,                        
+  float: true                          
+}
+reader data
+Start {
+  '697': { start: 1.9500000000000015 },
+  '1209': { start: 1.9500000000000015 }
+}
+End { '1209': { start: 1.9500000000000015, end: 2.339999999999994 } }
+Start { '1209': { start: 2.339999999999994 } }
+End {
+  '697': { start: 1.9500000000000015, end: 2.4599999999999915 },
+  '1209': { start: 2.339999999999994, end: 2.4599999999999915 }
+}
+Start {
+  '697': { start: 2.7499999999999853 },
+  '1209': { start: 2.7499999999999853 }
+}
+End { '697': { start: 2.7499999999999853, end: 2.8799999999999826 } }
+Start { '697': { start: 2.8799999999999826 } }
+End { '1209': { start: 2.7499999999999853, end: 3.0599999999999787 } }
+Start { '1209': { start: 3.0599999999999787 } }
+End {
+  '697': { start: 2.8799999999999826, end: 3.2599999999999745 },
+  '1209': { start: 3.0599999999999787, end: 3.2599999999999745 }
+}
+Start {
+  '697': { start: 3.5499999999999683 },
+  '1209': { start: 3.5499999999999683 }
+}
+End { '697': { start: 3.5499999999999683, end: 3.699999999999965 } }
+Start { '697': { start: 3.699999999999965 } }
+End {
+  '697': { start: 3.699999999999965, end: 4.059999999999958 },
+  '1209': { start: 3.5499999999999683, end: 4.059999999999958 }
+}
+reader data
+Start {
+  '697': { start: 4.349999999999952 },
+  '1209': { start: 4.349999999999952 }
+}
+End {
+  '697': { start: 4.349999999999952, end: 4.859999999999941 },
+  '1209': { start: 4.349999999999952, end: 4.859999999999941 }
+}
+reader end
+
+
+
+Notice we will need to:
+  - combine frequencies and identify DTMF tones.
+  - remove duplication of digits since some End events happen at the same moment a Start event happens.
 
