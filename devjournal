@@ -349,3 +349,11 @@ Notice we will need to:
   - combine frequencies and identify DTMF tones.
   - remove duplication of digits since some End events happen at the same moment a Start event happens.
 
+=====================================================
+2020/02/19 takeshi
+
+In case some library gives us data in float PCM encoding (float 32), and we need to convert to LINEAR16:
+  https://stackoverflow.com/questions/15087668/how-to-convert-pcm-samples-in-byte-array-as-floating-point-numbers-in-the-range 
+
+
+

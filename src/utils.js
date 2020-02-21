@@ -47,6 +47,9 @@ function parse_sdp(s) {
 			case 'direction':
 				sdp.media[media_id].direction = v
 				break
+			case 'channel':
+				sdp.media[media_id].channel = v
+				break
 			}
 		}
 	})
