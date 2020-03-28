@@ -27,7 +27,7 @@ const setup_speechsynth = (ctx, uuid, data, conn) => {
 
 	const client = new textToSpeech.TextToSpeechClient();
 
-	const outputFile = `/root/tmp/${uuid}.l16`
+	const outputFile = `./tmp/${uuid}.l16`
 
 	const request = {
 		input: {
