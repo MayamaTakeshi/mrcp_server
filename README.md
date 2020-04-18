@@ -14,5 +14,8 @@ To test things so far:
 
 Then on another shell, clone https://github.com/MayamaTakeshi/mrcp_client and do:
   cd mrcp_client
-  node index.js speechsynth 127.0.0.1 8060
+
+  node speechsynth_client.js 127.0.0.1 8060
+or
+  node speechrecog_client.js 127.0.0.1 8060
 

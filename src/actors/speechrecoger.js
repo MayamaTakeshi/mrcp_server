@@ -102,7 +102,8 @@ module.exports = (parent, uuid) => spawn(
 				state.recognizeStream = setup_speechrecog(msg, session_string, state, ctx)
 
 				registrar[uuid].rtp_session.on('data', data => {
-					//console.log(data)
+					console.log("rtp_session data")
+					console.log(data)
 					if(state.recognizeStream) {
 						state.recognizeStream.write(data)
 					}
