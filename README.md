@@ -24,6 +24,7 @@ Then on another shell, clone https://github.com/MayamaTakeshi/mrcp_client and do
 
 ```
   cd mrcp_client
+  apt/yum install sox
   npm install
 ```
 
@@ -36,6 +37,6 @@ To test speechsynth:
 To test speechrecog:
 
 ````
-  node speechrecog_client.js 127.0.0.1 8060
+  node speechrecog_client.js 127.0.0.1 8060 ja-JP artifacts/ohayou_gozaimasu.wav
 ```
 
