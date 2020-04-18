@@ -80,19 +80,6 @@ var process_incoming_call = (state, req) => {
 	}
 
 	try {
-		/*
-		var rtp_socket = udp.createSocket({type: 'udp4'})
-
-		rtp_socket.on('message', function (msg, rinfo) {
-			var payload = msg.slice(12) // Assume 12 bytes for RTP header
-			rtp_socket.emit('data', payload)
-		})
-
-		rtp_socket.bind(data.local_rtp_port, config.local_ip_address)
-
-		data.rtp_socket = rtp_socket
-		*/
-
 		var rtp_session = new RtpSession({
 			local_ip: config.local_ip_address,
 			local_port: data.local_rtp_port,

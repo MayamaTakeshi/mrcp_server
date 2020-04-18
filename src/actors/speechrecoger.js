@@ -74,6 +74,8 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 			var transcript = data.results[0] ? data.results[0].alternatives[0].transcript : ''
 			var confidence = data.results[0] ? data.results[0].alternatives[0].confidence : 0
 			send_recognition_complete(msg, session_string, transcript, confidence)
+			state.recognizeStream.end()
+			state.recognizeStream = null
 		})
 
 	return recognizeStream

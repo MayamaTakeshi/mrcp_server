@@ -355,5 +355,29 @@ Notice we will need to:
 In case some library gives us data in float PCM encoding (float 32), and we need to convert to LINEAR16:
   https://stackoverflow.com/questions/15087668/how-to-convert-pcm-samples-in-byte-array-as-floating-point-numbers-in-the-range 
 
+=====================================================
+2020/04/18 takeshi
+
+About TCP connection lifetime the RFC
+  https://tools.ietf.org/html/rfc6787
+
+says:
+-----------------------------------------------------------------------------
+   When the client wants to deallocate the resource from this session,
+   it issues a new SDP offer, according to RFC 3264 [RFC3264], where the
+   control "m=" line port MUST be set to 0.  This SDP offer is sent in a
+   SIP re-INVITE request.  This deallocates the associated MRCPv2
+   identifier and resource.  The server MUST NOT close the TCP or TLS
+   connection if it is currently being shared among multiple MRCP
+   channels.  When all MRCP channels that may be sharing the connection
+   are released and/or the associated SIP dialog is terminated, the
+   client or server terminates the connection.
+-----------------------------------------------------------------------------
+
+For now, we will not close MRCP/TCP connections: we will leave for the client to do it.
+And the closure of the MRCP/TCP connection should have no effect in SIP dialogs.
+
+
+
 
 
