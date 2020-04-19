@@ -149,12 +149,15 @@ module.exports = (parent, uuid) => spawn(
 		if(msg.type == MT.START) {
 			return state
 		} else if(msg.type == MT.MRCP_MESSAGE) {
+			logger.log('info', JSON.stringify(msg.data))
 			if(msg.data.method == 'SPEAK') {
+				logger.log('info', `${u.fn(__filename)} sending reply 200 IN-PROGRESS`)
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier']})
 				u.safe_write(msg.conn, response)
 
 				setup_speechsynth(ctx, uuid, msg.data, msg.conn)
 			} else if(msg.data.method == 'STOP') {
+				logger.log('info', `${u.fn(__filename)} sending reply 200 COMPLETE`)
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
 				u.safe_write(msg.conn, response)
 				stop_speak(state)
@@ -196,6 +199,7 @@ module.exports = (parent, uuid) => spawn(
 
 						if(len == 0) {
 							logger.log('info', `Reading ${msg.path} reached end of file`)
+							logger.log('info', `${u.fn(__filename)} sending event SPEAK-COMPLETE`)
 							var event = mrcp.builder.build_event('SPEAK-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'Completion-Cause': '000 normal'})
 							u.safe_write(msg.conn, event)
 
