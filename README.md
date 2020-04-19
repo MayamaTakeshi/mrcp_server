@@ -31,7 +31,7 @@ Then on another shell, clone https://github.com/MayamaTakeshi/mrcp_client and do
 To test speechsynth:
 
 ```
-  node speechsynth_client.js 127.0.0.1 8060
+  node speechsynth_client.js 127.0.0.1 8060 en-US en-US-Wavenet-E "Hello World!"
 ```
 
 To test speechrecog:
