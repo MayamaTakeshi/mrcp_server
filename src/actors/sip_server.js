@@ -148,6 +148,7 @@ var process_in_dialog_request = (state, req) => {
 		if(registrar[uuid]) {
 			var port = registrar[uuid].local_rtp_port
 			delete registrar[uuid]
+			state.rtp_session.close()
 			state.rtp_ports.push(port)
 		}
 		return

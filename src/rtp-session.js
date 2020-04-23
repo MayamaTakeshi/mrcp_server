@@ -78,6 +78,10 @@ class RtpSession {
         this._socket.send(buf, 0, buf.length, this._info.remote_port, this._info.remote_ip)
 	}
 
+	close() {
+		this._socket.close()
+	}
+
 	on(evt, cb) {
 		this._socket.on(evt, cb)
 	}
