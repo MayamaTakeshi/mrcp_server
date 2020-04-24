@@ -20,3 +20,5 @@ const mrcp_server = require('./src/actors/mrcp_server.js')(system)
 dispatch(sip_server, {type: MT.START, data: {mrcp_server: mrcp_server}})
 dispatch(mrcp_server, {type: MT.START})
 
+logger.log("DEBUG", `Listening to SIP ${config.local_ip}:${config.sip_port}`)
+
