@@ -72,6 +72,14 @@ const setup_speechsynth = (ctx, uuid, data, conn) => {
 		writeStream.on('finish', () => {
 			logger.log('info', `Audio content written to file: ${outputFile}`)
 			dispatch(ctx.self, {type: MT.TTS_FILE_READY, data: data, conn: conn, path: outputFile})
+
+			client.close()
+			.then(res => {
+				console.log(`TextToSpeechClient closed successfully}`)
+			})
+			.catch(err => {
+				console.log(`TextToSpeechClient closure failed: ${err}`)
+			})
 		})
 
 		bufferStream.pipe(wavReader)

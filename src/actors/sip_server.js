@@ -81,7 +81,7 @@ var process_incoming_call = (state, req) => {
 
 	try {
 		var rtp_session = new RtpSession({
-			local_ip: config.local_ip_address,
+			local_ip: config.local_ip,
 			local_port: data.local_rtp_port,
 			remote_ip: data.remote_rtp_ip, 
 			remote_port: data.remote_rtp_port,
@@ -104,14 +104,14 @@ var process_incoming_call = (state, req) => {
 
 	dispatch(state.mrcp_server, {type: MT.SESSION_CREATED, data: data})
 
-	var answer_sdp = gen_sdp(config.local_ip_address, config.mrcp_port, local_rtp_port, data.connection, data.uuid, data.resource)
+	var answer_sdp = gen_sdp(config.local_ip, config.mrcp_port, local_rtp_port, data.connection, data.uuid, data.resource)
 
 	var res = sip.makeResponse(req, 200, 'OK')
 
 	res.headers.to.params.tag = rstring()
 
 	res.headers['record-route'] = req.headers['record-route']
-	res.headers.contact = [{uri: `sip:mrcp_server@${config.local_ip_address}:${config.sip_port}`}]
+	res.headers.contact = [{uri: `sip:mrcp_server@${config.local_ip}:${config.sip_port}`}]
 	res.headers['content-type'] = 'application/sdp'
 	res.content = answer_sdp
 

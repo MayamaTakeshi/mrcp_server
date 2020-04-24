@@ -37,7 +37,7 @@ module.exports = (parent) => spawn(
 				})
 			})
 
-			state.server.listen(config.mrcp_port, config.local_ip_address)
+			state.server.listen(config.mrcp_port, config.local_ip)
 			return state
 		} else if(msg.type == MT.SESSION_CREATED) {
 			if(!msg.data.uuid in registrar) return

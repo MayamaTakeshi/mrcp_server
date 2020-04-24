@@ -79,6 +79,14 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 			send_recognition_complete(msg, session_string, transcript, confidence)
 			state.recognizeStream.end()
 			state.recognizeStream = null
+
+			client.close()
+			.then(res => {
+				console.log(`SpeechClient closed successfully}`)
+			})
+			.catch(err => {
+				console.log(`SpeechClient closure failed: ${err}`)
+			})
 		})
 
 	return recognizeStream
