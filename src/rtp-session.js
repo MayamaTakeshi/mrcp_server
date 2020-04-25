@@ -12,6 +12,8 @@ class RtpSession {
 
 			seq_num: 1,
 			time_stamp: 160,
+
+			activity_ts: Date.now(),
 		}
 
 		console.log(this._info)
@@ -76,6 +78,8 @@ class RtpSession {
 		buf[7] = time_stamp & 0xFF
 	
         this._socket.send(buf, 0, buf.length, this._info.remote_port, this._info.remote_ip)
+
+		this._info.activity_ts = Date.now()
 	}
 
 	close() {
@@ -83,6 +87,7 @@ class RtpSession {
 	}
 
 	on(evt, cb) {
+		this._info.activity_ts = Date.now()
 		this._socket.on(evt, cb)
 	}
 }

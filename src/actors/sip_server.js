@@ -70,6 +70,7 @@ var process_incoming_call = (state, req) => {
 	var data = {
 		uuid: req.headers['call-id'],
 		local_rtp_port: local_rtp_port,
+		sip_req: req,
 	}
 
 	var offer_sdp = u.parse_sdp(req.content)
@@ -115,6 +116,8 @@ var process_incoming_call = (state, req) => {
 	res.headers['content-type'] = 'application/sdp'
 	res.content = answer_sdp
 
+	data.sip_res = res
+
 	state.sip_stack.send(res,
 		function(res) {
 			logger.log('info', "got callback to res sent to out-of-dialog INVITE on sip stack")
@@ -144,10 +147,9 @@ var process_in_dialog_request = (state, req) => {
 
 		dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid})
 
-		logger.log('info', `BYE call_id=${uiid}`)
+		logger.log('info', `BYE call_id=${uuid}`)
 		if(registrar[uuid]) {
 			var port = registrar[uuid].local_rtp_port
-			delete registrar[uuid]
 			state.rtp_session.close()
 			state.rtp_ports.push(port)
 		}
@@ -201,6 +203,37 @@ module.exports = (parent) => spawn(
 			}
 			state.sip_stack = create_sip_stack(state)
 			state.mrcp_server = msg.data.mrcp_server
+
+			state.rtpCheckTimer = setInterval(() => {
+				var now = Date.now()
+				Object.keys(registrar).forEach(uuid => {
+					var call = registrar[uuid]
+					if(now - call.rtp_session._info.activity_ts > config.rtp_timeout) {
+						logger.log('warning', `Sending BYE to call_id=${uuid} due to RTP inactivity`)
+
+						var port = registrar[uuid].local_rtp_port
+						call.rtp_session.close()
+						state.rtp_ports.push(port)
+
+						dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid})
+
+						state.sip_stack.send({
+							method: 'BYE',
+							uri: call.sip_req.headers.contact[0].uri,
+							headers: {
+								to: call.sip_res.headers.from,
+								from: call.sip_res.headers.to,
+								'call-id': call.sip_req.headers['call-id'],
+								cseq: {method: 'BYE', seq: call.sip_req.headers.cseq.seq + 1},
+								via: []
+							}
+						}, (res) => {
+								console.log(`BYE for call ${uuid} got: ${res.status} ${res.reason}`)	
+						})
+					}
+				})
+			}, 1000)
+
 			return state
 		} else {
 			logger.log('error', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)

@@ -62,6 +62,7 @@ module.exports = (parent) => spawn(
 			if(handler) {
 				dispatch(handler, {type: MT.TERMINATE})	
 			}
+			delete registrar[msg.uuid]
 			return state
 		} else {
 			logger.log('error', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
