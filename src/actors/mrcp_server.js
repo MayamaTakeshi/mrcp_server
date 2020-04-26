@@ -26,6 +26,7 @@ module.exports = (parent) => spawn(
 					if(! uuid in registrar) {
 						var response = mrcp.builder.build_response(data.request_id, 405, 'COMPLETE', {'channel-identifier': data.headers['channel-identifier']})
 						u.safe_write(conn, response)
+						return
 					}
 
 					var handler = registrar[uuid].handler

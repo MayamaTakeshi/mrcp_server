@@ -19,13 +19,18 @@ const stop_myself = (state, ctx) => {
 		state.recognizeStream = null
 	}
 
-	console.log("p2")
 	if(state.speechClient) {
-		console.log("p3")
+		console.log("p2")
 		state.speechClient.close()
+		.then(() => {
+			console.log("speechClient closed")
+		})
+		.catch(err => {
+			console.error(`speechClient closure error: ${err}`)
+		})
 		state.speechClient = null
 	}
-	console.log("p4")
+	console.log("p3")
 
 	stop(ctx.self)
 }
@@ -117,6 +122,7 @@ module.exports = (parent, uuid) => spawn(
 					return
 				}
 
+				state.uuid = uuid
 				state.session_string = msg.data.body
 				state.recognizeStream = setup_speechrecog(msg, state.session_string, state, ctx)
 				state.channel_identifier = msg.data.headers['channel-identifier']
@@ -124,13 +130,15 @@ module.exports = (parent, uuid) => spawn(
 				state.conn = msg.conn
 				state.recognition_ongoing = true
 
-				registrar[uuid].rtp_session.on('data', data => {
+				state.rtp_data_handler = data => {
 					//console.log("rtp_session data")
 					//console.log(data)
 					if(state.recognizeStream) {
 						state.recognizeStream.write(data)
 					}
-				})
+				}
+
+				registrar[uuid].rtp_session.on('data', state.rtp_data_handler)
 
 				logger.log('info', `${u.fn(__filename)} sending reply 200 IN-PROGRESS}`)
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier']})
