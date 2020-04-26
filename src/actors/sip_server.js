@@ -218,7 +218,7 @@ module.exports = (parent) => spawn(
 
 						state.sip_stack.send({
 							method: 'BYE',
-							uri: call.sip_req.headers.contact[0].uri,
+							uri: call.sip_req.headers.contact ? call.sip_req.headers.contact[0].uri : call.sip_req.headers.from.uri,
 							headers: {
 								to: call.sip_res.headers.from,
 								from: call.sip_res.headers.to,
