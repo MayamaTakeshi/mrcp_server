@@ -12,15 +12,20 @@ const registrar = require('../registrar.js')
 const speech = require('@google-cloud/speech')
 
 const stop_myself = (state, ctx) => {
+	console.log("stop_myself")
 	if(state.recognizeStream) {
+		console.log("p1")
 		state.recognizeStream.end()
 		state.recognizeStream = null
 	}
 
+	console.log("p2")
 	if(state.speechClient) {
+		console.log("p3")
 		state.speechClient.close()
 		state.speechClient = null
 	}
+	console.log("p4")
 
 	stop(ctx.self)
 }
@@ -117,6 +122,7 @@ module.exports = (parent, uuid) => spawn(
 				state.channel_identifier = msg.data.headers['channel-identifier']
 				state.request_id = msg.data.request_id
 				state.conn = msg.conn
+				state.recognition_ongoing = true
 
 				registrar[uuid].rtp_session.on('data', data => {
 					//console.log("rtp_session data")
@@ -134,20 +140,23 @@ module.exports = (parent, uuid) => spawn(
 				logger.log('info', `${u.fn(__filename)} sending reply 200 COMPLETE}`)
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
 				u.safe_write(msg.conn, response)
-				if(state.recognizeStream) {
-					state.recognizeStream.end()
-					state.recognizeStream = null
-				}
-				return
+				state.recognition_ongoing = false
+				stop_myself(state, ctx)
 			}
 			return state
 		} else if(msg.type == MT.TERMINATE) {
+			if(state.recognition_ongoing) {
+				// Client (freeswitch) needs this to finish operation
+				send_recognition_complete(state, '', 0)
+				state.recognition_ongoing = false
+			}
 			stop_myself(state, ctx)
 			return
 		} else if(msg.type == MT.RECOGNITION_COMPLETED) {
 			send_recognition_complete(state, msg.data.transcript, msg.data.confidence)
+			state.recognition_ongoing = false
 			stop_myself(state, ctx)
-			return
+			return state
 		} else {
 			logger.log('error', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
 			return state
