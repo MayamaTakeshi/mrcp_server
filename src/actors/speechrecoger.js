@@ -17,6 +17,11 @@ const stop_myself = (state, ctx) => {
 		state.recognizeStream = null
 	}
 
+	if(state.speechClient) {
+		state.speechClient.close()
+		state.speechClient = null
+	}
+
 	stop(ctx.self)
 }
 
@@ -54,9 +59,9 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 		singleUtterance: true,
 	}
 
-	const client = new speech.SpeechClient()
+	state.speechClient = new speech.SpeechClient()
 
-	const recognizeStream = client
+	const recognizeStream = state.speechClient
 		.streamingRecognize(request)
 		.on('error', (error) => { 
 			console.error(`recognizeStream error: ${error}`)
@@ -66,6 +71,8 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 			}
 			
 			send_recognition_complete(msg, session_string, '', 0)
+
+			state.speechClient = null
 		})
 		.on('data', data => {
 			console.log(`RecognizeStream on data: ${JSON.stringify(data)}`)
@@ -80,13 +87,15 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 			state.recognizeStream.end()
 			state.recognizeStream = null
 
-			client.close()
+			state.speechClient.close()
 			.then(res => {
 				console.log(`SpeechClient closed successfully}`)
 			})
 			.catch(err => {
 				console.log(`SpeechClient closure failed: ${err}`)
 			})
+
+			state.speechClient = null
 		})
 
 	return recognizeStream

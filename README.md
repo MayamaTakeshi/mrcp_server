@@ -33,7 +33,7 @@ Then on another machine, clone https://github.com/MayamaTakeshi/mrcp_client and 
 To test speechsynth:
 
 ```
-  node speechsynth_client.js IP_ADDRES_OF_SERVER SIP_PORT_OF_SERVER en-US en-US-Wavenet-E "Hello World!"
+  node speechsynth_client.js IP_ADDRESS_OF_SERVER SIP_PORT_OF_SERVER en-US en-US-Wavenet-E "Hello World!"
 ```
 
 To test speechrecog:
