@@ -149,9 +149,9 @@ var process_in_dialog_request = (state, req) => {
 
 		logger.log('info', `BYE call_id=${uuid}`)
 		if(registrar[uuid]) {
-			var port = registrar[uuid].local_rtp_port
-			state.rtp_session.close()
-			state.rtp_ports.push(port)
+			var call = registrar[uuid]
+			call.rtp_session.close()
+			state.rtp_ports.push(call.local_rtp_port)
 		}
 		return
 	}
@@ -184,7 +184,6 @@ function create_sip_stack(state) {
 
 			process_incoming_call(state, req);
 		} catch(err) {
-			ui.destroy()
 			console.log(err)
 			process.exit(100)
 		}
