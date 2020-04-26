@@ -144,6 +144,8 @@ module.exports = (parent, uuid) => spawn(
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier']})
 				u.safe_write(msg.conn, response)
 
+				send_start_of_input(msg)
+
 			} else if(msg.data.method == 'STOP') {
 				logger.log('info', `${u.fn(__filename)} sending reply 200 COMPLETE}`)
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
