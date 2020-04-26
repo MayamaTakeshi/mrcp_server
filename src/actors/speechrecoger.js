@@ -31,18 +31,18 @@ var send_start_of_input = (msg) => {
 	u.safe_write(msg.conn, event)
 }
 
-var send_recognition_complete = (msg, session_string, result, confidence) => {
+var send_recognition_complete = (state, result, confidence) => {
 	logger.log('info', `${u.fn(__filename)} sending event RECOGNITION-COMPLETE ${result}}`)
 	var body = `<?xml version="1.0"?>
 <result>
-	<interpretation grammar="${session_string}" confidence="${confidence}">
+	<interpretation grammar="${state.session_string}" confidence="${confidence}">
 		<instance>${result}</instance>
 		<input mode="speech">${result}</input>
 	</interpretation>
 </result>`
 
-	var event = mrcp.builder.build_event('RECOGNITION-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success', 'content-type': 'application/x-nlsml'}, body)
-	u.safe_write(msg.conn, event)
+	var event = mrcp.builder.build_event('RECOGNITION-COMPLETE', state.request_id, 'COMPLETE', {'channel-identifier': state.channel_identifier, 'completion-cause': '000 success', 'content-type': 'application/x-nlsml'}, body)
+	u.safe_write(state.conn, event)
 }
 
 const setup_speechrecog = (msg, session_string, state, ctx) => {
@@ -65,14 +65,13 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 		.streamingRecognize(request)
 		.on('error', (error) => { 
 			console.error(`recognizeStream error: ${error}`)
-			if(state.recognizeStream) {
-				state.recognizeStream.end()
-				state.recognizeStream = null
-			}
-			
-			send_recognition_complete(msg, session_string, '', 0)
-
-			state.speechClient = null
+			dispatch(ctx.self, {
+				type: MT.RECOGNITION_COMPLETED,
+				data: {
+					transcript: '',
+					confidence: 0,
+				},
+			})
 		})
 		.on('data', data => {
 			console.log(`RecognizeStream on data: ${JSON.stringify(data)}`)
@@ -81,21 +80,13 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 
 			if(!data.results[0]) return
 
-			var transcript = data.results[0] ? data.results[0].alternatives[0].transcript : ''
-			var confidence = data.results[0] ? data.results[0].alternatives[0].confidence : 0
-			send_recognition_complete(msg, session_string, transcript, confidence)
-			state.recognizeStream.end()
-			state.recognizeStream = null
-
-			state.speechClient.close()
-			.then(res => {
-				console.log(`SpeechClient closed successfully}`)
+			dispatch(ctx.self, {
+				type: MT.RECOGNITION_COMPLETED,
+				data: {
+					transcript: data.results[0] ? data.results[0].alternatives[0].transcript : '',
+					confidence: data.results[0] ? data.results[0].alternatives[0].confidence : 0,
+				},
 			})
-			.catch(err => {
-				console.log(`SpeechClient closure failed: ${err}`)
-			})
-
-			state.speechClient = null
 		})
 
 	return recognizeStream
@@ -121,8 +112,11 @@ module.exports = (parent, uuid) => spawn(
 					return
 				}
 
-				var session_string = msg.data.body
-				state.recognizeStream = setup_speechrecog(msg, session_string, state, ctx)
+				state.session_string = msg.data.body
+				state.recognizeStream = setup_speechrecog(msg, state.session_string, state, ctx)
+				state.channel_identifier = msg.data.headers['channel-identifier']
+				state.request_id = msg.data.request_id
+				state.conn = msg.conn
 
 				registrar[uuid].rtp_session.on('data', data => {
 					//console.log("rtp_session data")
@@ -148,6 +142,10 @@ module.exports = (parent, uuid) => spawn(
 			}
 			return state
 		} else if(msg.type == MT.TERMINATE) {
+			stop_myself(state, ctx)
+			return
+		} else if(msg.type == MT.RECOGNITION_COMPLETED) {
+			send_recognition_complete(state, msg.data.transcript, msg.data.confidence)
 			stop_myself(state, ctx)
 			return
 		} else {
