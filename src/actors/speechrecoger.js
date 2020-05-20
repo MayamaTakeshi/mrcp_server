@@ -165,7 +165,7 @@ module.exports = (parent, uuid) => spawn(
 		} else if(msg.type == MT.RECOGNITION_COMPLETED) {
 			send_recognition_complete(state, msg.data.transcript, msg.data.confidence)
 			state.recognition_ongoing = false
-			stop_myself(state, ctx)
+			//stop_myself(state, ctx)
 			return state
 		} else {
 			logger.log('error', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
