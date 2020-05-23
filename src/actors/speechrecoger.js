@@ -84,7 +84,7 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 			})
 		})
 		.on('data', data => {
-			console.log(`RecognizeStream on data: ${JSON.stringify(data)}`)
+			logger.log('info', `${u.fn(__filename)} RecognizeStream on data: ${JSON.stringify(data)}`)
 
 			if(data.speechEventType == "END_OF_SINGLE_UTTERANCE" && !data.results) return
 
