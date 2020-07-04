@@ -66,40 +66,42 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 	var request = {
 		config,
 		interimResults: false, 
-		singleUtterance: true,
+		singleUtterance: false,
 	}
 
-	state.speechClient = new speech.SpeechClient()
+	if(!state.speechClient) {
+		state.speechClient = new speech.SpeechClient()
 
-	const recognizeStream = state.speechClient
-		.streamingRecognize(request)
-		.on('error', (error) => { 
-			console.error(`recognizeStream error: ${error}`)
-			dispatch(ctx.self, {
-				type: MT.RECOGNITION_COMPLETED,
-				data: {
-					transcript: '',
-					confidence: 0,
-				},
-			})
-		})
-		.on('data', data => {
-			logger.log('info', `${u.fn(__filename)} RecognizeStream on data: ${JSON.stringify(data)}`)
+		if(!state.recognizeStream) {
+			state.recognizeStream = state.speechClient
+				.streamingRecognize(request)
+				.on('error', (error) => { 
+					console.error(`recognizeStream error: ${error}`)
+					dispatch(ctx.self, {
+						type: MT.RECOGNITION_COMPLETED,
+						data: {
+							transcript: '',
+							confidence: 0,
+						},
+					})
+				})
+				.on('data', data => {
+					logger.log('info', `${u.fn(__filename)} RecognizeStream on data: ${JSON.stringify(data)}`)
 
-			if(data.speechEventType == "END_OF_SINGLE_UTTERANCE" && !data.results) return
+					if(data.speechEventType == "END_OF_SINGLE_UTTERANCE" || !data.results) return
 
-			if(!data.results[0]) return
+					if(!data.results[0]) return
 
-			dispatch(ctx.self, {
-				type: MT.RECOGNITION_COMPLETED,
-				data: {
-					transcript: data.results[0] ? data.results[0].alternatives[0].transcript : '',
-					confidence: data.results[0] ? data.results[0].alternatives[0].confidence : 0,
-				},
-			})
-		})
-
-	return recognizeStream
+					dispatch(ctx.self, {
+						type: MT.RECOGNITION_COMPLETED,
+						data: {
+							transcript: data.results[0] ? data.results[0].alternatives[0].transcript : '',
+							confidence: data.results[0] ? data.results[0].alternatives[0].confidence : 0,
+						},
+					})
+				})
+		}
+	}
 }
 
 module.exports = (parent, uuid) => spawn(
@@ -124,7 +126,9 @@ module.exports = (parent, uuid) => spawn(
 
 				state.uuid = uuid
 				state.session_string = msg.data.body
-				state.recognizeStream = setup_speechrecog(msg, state.session_string, state, ctx)
+
+				setup_speechrecog(msg, state.session_string, state, ctx)
+
 				state.channel_identifier = msg.data.headers['channel-identifier']
 				state.request_id = msg.data.request_id
 				state.conn = msg.conn
