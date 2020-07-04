@@ -88,15 +88,30 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 				.on('data', data => {
 					logger.log('info', `${u.fn(__filename)} RecognizeStream on data: ${JSON.stringify(data)}`)
 
-					if(data.speechEventType == "END_OF_SINGLE_UTTERANCE" || !data.results) return
+					var transcript = data.results && data.results[0] ? data.results[0].alternatives[0].transcript : ''
+					var confidence = data.results && data.results[0] ? data.results[0].alternatives[0].confidence : 0
 
-					if(!data.results[0]) return
+					if(data.speechEventType == "END_OF_SINGLE_UTTERANCE") {
+						logger.log('error', 'Unexpected END_OF_SINGLE_UTTERANCE')
+
+						dispatch(ctx.self, {
+							type: MT.RECOGNITION_COMPLETED,
+							data: {
+								transcript: transcript,
+								confidence: confidence,
+							},
+						})
+					}
+
+					//if(!data.results) return
+
+					//if(!data.results[0]) return
 
 					dispatch(ctx.self, {
 						type: MT.RECOGNITION_COMPLETED,
 						data: {
-							transcript: data.results[0] ? data.results[0].alternatives[0].transcript : '',
-							confidence: data.results[0] ? data.results[0].alternatives[0].confidence : 0,
+							transcript: transcript,
+							confidence: confidence,
 						},
 					})
 				})
