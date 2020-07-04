@@ -66,7 +66,7 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 	var request = {
 		config,
 		interimResults: false, 
-		singleUtterance: false,
+		singleUtterance: true,
 	}
 
 	if(!state.speechClient) {
@@ -94,6 +94,7 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 				var transcript = data.results && data.results[0] ? data.results[0].alternatives[0].transcript : ''
 				var confidence = data.results && data.results[0] ? data.results[0].alternatives[0].confidence : 0
 
+				/*
 				if(data.speechEventType == "END_OF_SINGLE_UTTERANCE") {
 					logger.log('error', 'Unexpected END_OF_SINGLE_UTTERANCE')
 
@@ -106,10 +107,11 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 					})
 					return
 				}
+				*/
 
-				//if(!data.results) return
+				if(!data.results) return
 
-				//if(!data.results[0]) return
+				if(!data.results[0]) return
 
 				dispatch(ctx.self, {
 					type: MT.RECOGNITION_COMPLETED,
@@ -198,7 +200,10 @@ module.exports = (parent, uuid) => spawn(
 		} else if(msg.type == MT.RECOGNITION_COMPLETED) {
 			send_recognition_complete(state, msg.data.transcript, msg.data.confidence)
 			state.recognition_ongoing = false
-			//stop_myself(state, ctx)
+			if(state.recognizeStream) {
+				state.recognizeStream.end()
+				state.recognizeStream = null
+			}
 			return state
 		} else if(msg.type == MT.RECOGNITION_COMPLETED_WITH_ERROR) {
 			send_recognition_complete(state, msg.data.transcript, msg.data.confidence)
