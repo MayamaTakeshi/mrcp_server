@@ -76,7 +76,7 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 			state.recognizeStream = state.speechClient
 				.streamingRecognize(request)
 				.on('error', (error) => { 
-					console.error(`recognizeStream error: ${error}`)
+					logger.log('error', `recognizeStream error: ${error}`)
 					dispatch(ctx.self, {
 						type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
 						data: {
@@ -112,6 +112,16 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 						data: {
 							transcript: transcript,
 							confidence: confidence,
+						},
+					})
+				})
+				.on('close', data => {
+					logger.log('error', `${u.fn(__filename)} RecognizeStream closed`)
+					dispatch(ctx.self, {
+						type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
+						data: {
+							transcript: '',
+							confidence: 0,
 						},
 					})
 				})
@@ -189,7 +199,10 @@ module.exports = (parent, uuid) => spawn(
 		} else if(msg.type == MT.RECOGNITION_COMPLETED_WITH_ERROR) {
 			send_recognition_complete(state, msg.data.transcript, msg.data.confidence)
 			state.recognition_ongoing = false
-			stop_myself(state, ctx)
+			if(state.recognizeStream) {
+				state.recognizeStream.end()
+				state.recognizeStream = null
+			}
 			return state
 		} else {
 			logger.log('error', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
