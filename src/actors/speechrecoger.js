@@ -70,63 +70,65 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 	}
 
 	if(!state.speechClient) {
+		logger.log('debug', 'Creating speechClient')
 		state.speechClient = new speech.SpeechClient()
+	}
 
-		if(!state.recognizeStream) {
-			state.recognizeStream = state.speechClient
-				.streamingRecognize(request)
-				.on('error', (error) => { 
-					logger.log('error', `recognizeStream error: ${error}`)
+	if(!state.recognizeStream) {
+		logger.log('debug', 'Creating RecognizeStream')
+		state.recognizeStream = state.speechClient
+			.streamingRecognize(request)
+			.on('error', (error) => { 
+				logger.log('error', `recognizeStream error: ${error}`)
+				dispatch(ctx.self, {
+					type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
+					data: {
+						transcript: '',
+						confidence: 0,
+					},
+				})
+			})
+			.on('data', data => {
+				logger.log('info', `${u.fn(__filename)} RecognizeStream on data: ${JSON.stringify(data)}`)
+
+				var transcript = data.results && data.results[0] ? data.results[0].alternatives[0].transcript : ''
+				var confidence = data.results && data.results[0] ? data.results[0].alternatives[0].confidence : 0
+
+				if(data.speechEventType == "END_OF_SINGLE_UTTERANCE") {
+					logger.log('error', 'Unexpected END_OF_SINGLE_UTTERANCE')
+
 					dispatch(ctx.self, {
 						type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
-						data: {
-							transcript: '',
-							confidence: 0,
-						},
-					})
-				})
-				.on('data', data => {
-					logger.log('info', `${u.fn(__filename)} RecognizeStream on data: ${JSON.stringify(data)}`)
-
-					var transcript = data.results && data.results[0] ? data.results[0].alternatives[0].transcript : ''
-					var confidence = data.results && data.results[0] ? data.results[0].alternatives[0].confidence : 0
-
-					if(data.speechEventType == "END_OF_SINGLE_UTTERANCE") {
-						logger.log('error', 'Unexpected END_OF_SINGLE_UTTERANCE')
-
-						dispatch(ctx.self, {
-							type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
-							data: {
-								transcript: transcript,
-								confidence: confidence,
-							},
-						})
-						return
-					}
-
-					//if(!data.results) return
-
-					//if(!data.results[0]) return
-
-					dispatch(ctx.self, {
-						type: MT.RECOGNITION_COMPLETED,
 						data: {
 							transcript: transcript,
 							confidence: confidence,
 						},
 					})
+					return
+				}
+
+				//if(!data.results) return
+
+				//if(!data.results[0]) return
+
+				dispatch(ctx.self, {
+					type: MT.RECOGNITION_COMPLETED,
+					data: {
+						transcript: transcript,
+						confidence: confidence,
+					},
 				})
-				.on('close', data => {
-					logger.log('error', `${u.fn(__filename)} RecognizeStream closed`)
-					dispatch(ctx.self, {
-						type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
-						data: {
-							transcript: '',
-							confidence: 0,
-						},
-					})
+			})
+			.on('close', data => {
+				logger.log('error', `${u.fn(__filename)} RecognizeStream closed`)
+				dispatch(ctx.self, {
+					type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
+					data: {
+						transcript: '',
+						confidence: 0,
+					},
 				})
-		}
+			})
 	}
 }
 
