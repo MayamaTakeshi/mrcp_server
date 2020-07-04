@@ -101,6 +101,7 @@ const setup_speechrecog = (msg, session_string, state, ctx) => {
 								confidence: confidence,
 							},
 						})
+						return
 					}
 
 					//if(!data.results) return
