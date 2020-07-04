@@ -164,7 +164,8 @@ module.exports = (parent, uuid) => spawn(
 					//console.log("rtp_session data")
 					//console.log(data)
 					if(state.recognizeStream) {
-						state.recognizeStream.write(data)
+						var res = state.recognizeStream.write(data)
+						//logger.log('debug', `${uuid} recognizeStream.write() res=${res}`)
 					}
 				}
 

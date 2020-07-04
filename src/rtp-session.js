@@ -51,6 +51,7 @@ class RtpSession {
 
 			var data = msg.slice(12) // assume 12 bytes header for now
 			this._socket.emit('data', data) 
+			this._info.activity_ts = Date.now()
 		})
 	}
 
@@ -87,7 +88,6 @@ class RtpSession {
 	}
 
 	on(evt, cb) {
-		this._info.activity_ts = Date.now()
 		this._socket.on(evt, cb)
 	}
 }
