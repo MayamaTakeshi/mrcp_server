@@ -10,7 +10,7 @@
   "repository": "https://MayamaTakeshi@github.com/MayamaTakeshi/mrcp_server",
   "license": "ISC",
   "dependencies": {
-    "@google-cloud/speech": "^4.1.0",
+    "@google-cloud/speech": "^3.6.0",
     "@google-cloud/text-to-speech": "^2.3.0",
     "collections": "^5.1.10",
     "config": "^3.3.1",
