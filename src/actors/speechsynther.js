@@ -12,6 +12,7 @@ const MT = require('../message_types.js')
 const config = require('config')
 
 const google_ss_agent = require('./google_ss_agent.js')
+const dtmf_ss_agent = require('./dtmf_ss_agent.js')
 
 module.exports = (parent, uuid) => spawn(
 	parent,
@@ -32,7 +33,11 @@ module.exports = (parent, uuid) => spawn(
 					dispatch(state.agent, {type: MT.TERMINATE})
 				}
 
-				state.agent = google_ss_agent(ctx.self, uuid)
+				if(msg.data.headers['speech-language'] == 'dtmf') {
+					state.agent = dtmf_ss_agent(ctx.self, uuid)
+				} else {
+					state.agent = google_ss_agent(ctx.self, uuid)
+				}
 				dispatch(state.agent, {type: MT.START, data: msg.data})
 			} else if(msg.data.method == 'STOP') {
 				logger.log('info', `${u.fn(__filename)} sending reply 200 COMPLETE`)
