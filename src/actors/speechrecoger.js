@@ -9,31 +9,7 @@ const config = require('config')
 
 const registrar = require('../registrar.js')
 
-const speech = require('@google-cloud/speech')
-
-const stop_myself = (state, ctx) => {
-	console.log("stop_myself")
-	if(state.recognizeStream) {
-		console.log("p1")
-		state.recognizeStream.end()
-		state.recognizeStream = null
-	}
-
-	if(state.speechClient) {
-		console.log("p2")
-		state.speechClient.close()
-		.then(() => {
-			console.log("speechClient closed")
-		})
-		.catch(err => {
-			console.error(`speechClient closure error: ${err}`)
-		})
-		state.speechClient = null
-	}
-	console.log("p3")
-
-	stop(ctx.self)
-}
+const google_sr_agent = require('./google_sr_agent.js')
 
 var send_start_of_input = (msg) => {
 	logger.log('info', `${u.fn(__filename)} sending event START-OF-INPUT}`)
@@ -53,85 +29,6 @@ var send_recognition_complete = (state, result, confidence) => {
 
 	var event = mrcp.builder.build_event('RECOGNITION-COMPLETE', state.request_id, 'COMPLETE', {'channel-identifier': state.channel_identifier, 'completion-cause': '000 success', 'content-type': 'application/x-nlsml'}, body)
 	u.safe_write(state.conn, event)
-}
-
-const setup_speechrecog = (msg, session_string, state, ctx) => {
-	var config = {
-		encoding: "MULAW",
-		sampleRateHertz: 8000,
-		languageCode: msg.data.headers['speech-language'],
-		//languageCode: 'en-US', 
-	}
-
-	var request = {
-		config,
-		interimResults: false, 
-		singleUtterance: true,
-	}
-
-	if(!state.speechClient) {
-		logger.log('debug', 'Creating speechClient')
-		state.speechClient = new speech.SpeechClient()
-	}
-
-	if(!state.recognizeStream) {
-		logger.log('debug', 'Creating RecognizeStream')
-		state.recognizeStream = state.speechClient
-			.streamingRecognize(request)
-			.on('error', (error) => { 
-				logger.log('error', `recognizeStream error: ${error}`)
-				dispatch(ctx.self, {
-					type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
-					data: {
-						transcript: '',
-						confidence: 0,
-					},
-				})
-			})
-			.on('data', data => {
-				logger.log('info', `${u.fn(__filename)} RecognizeStream on data: ${JSON.stringify(data)}`)
-
-				var transcript = data.results && data.results[0] ? data.results[0].alternatives[0].transcript : ''
-				var confidence = data.results && data.results[0] ? data.results[0].alternatives[0].confidence : 0
-
-				/*
-				if(data.speechEventType == "END_OF_SINGLE_UTTERANCE") {
-					logger.log('error', 'Unexpected END_OF_SINGLE_UTTERANCE')
-
-					dispatch(ctx.self, {
-						type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
-						data: {
-							transcript: transcript,
-							confidence: confidence,
-						},
-					})
-					return
-				}
-				*/
-
-				if(!data.results) return
-
-				if(!data.results[0]) return
-
-				dispatch(ctx.self, {
-					type: MT.RECOGNITION_COMPLETED,
-					data: {
-						transcript: transcript,
-						confidence: confidence,
-					},
-				})
-			})
-			.on('close', data => {
-				logger.log('error', `${u.fn(__filename)} RecognizeStream closed`)
-				dispatch(ctx.self, {
-					type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
-					data: {
-						transcript: '',
-						confidence: 0,
-					},
-				})
-			})
-	}
 }
 
 module.exports = (parent, uuid) => spawn(
@@ -157,45 +54,42 @@ module.exports = (parent, uuid) => spawn(
 				state.uuid = uuid
 				state.session_string = msg.data.body
 
-				setup_speechrecog(msg, state.session_string, state, ctx)
-
 				state.channel_identifier = msg.data.headers['channel-identifier']
 				state.request_id = msg.data.request_id
 				state.conn = msg.conn
-				state.recognition_ongoing = true
 
-				state.rtp_data_handler = data => {
-					//console.log("rtp_session data")
-					//console.log(data)
-					if(state.recognizeStream) {
-						var res = state.recognizeStream.write(data)
-						//logger.log('debug', `${uuid} recognizeStream.write() res=${res}`)
-					}
+				if(state.agent) {
+					dispatch(state.agent, {type: MT.TERMINATE})
 				}
 
-				registrar[uuid].rtp_session.on('data', state.rtp_data_handler)
+				state.agent = google_sr_agent(ctx.self, uuid)
+				dispatch(state.agent, {type: MT.START, data: msg.data})
 
 				logger.log('info', `${u.fn(__filename)} sending reply 200 IN-PROGRESS}`)
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier']})
-				u.safe_write(msg.conn, response)
+				u.safe_write(state.conn, response)
 
 				send_start_of_input(msg)
-
 			} else if(msg.data.method == 'STOP') {
 				logger.log('info', `${u.fn(__filename)} sending reply 200 COMPLETE}`)
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
 				u.safe_write(msg.conn, response)
-				state.recognition_ongoing = false
-				stop_myself(state, ctx)
+
+				if(state.agent) {
+					dispatch(state.agent, {type: MT.TERMINATE})
+				}
+				state.agent = null
+
+				stop(ctx.self)
 			}
 			return state
 		} else if(msg.type == MT.TERMINATE) {
-			if(state.recognition_ongoing) {
-				// Client (freeswitch) needs this to finish operation
-				send_recognition_complete(state, '', 0)
-				state.recognition_ongoing = false
+			if(state.agent) {
+				dispatch(state.agent, {type: MT.TERMINATE})
 			}
-			stop_myself(state, ctx)
+			state.agent = null
+
+			stop(ctx.self)
 			return
 		} else if(msg.type == MT.RECOGNITION_COMPLETED) {
 			send_recognition_complete(state, msg.data.transcript, msg.data.confidence)

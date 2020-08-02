@@ -377,7 +377,24 @@ says:
 For now, we will not close MRCP/TCP connections: we will leave for the client to do it.
 And the closure of the MRCP/TCP connection should have no effect in SIP dialogs.
 
+=====================================================
+2020/08/02 takeshi
 
+We will need to add support for DTMF speechrecog and speechsynth.
 
+So let's refactor speechrecoger.js and speechsynther.js and move Google SR/SS specific code to:
+  - google_sr_agent
+  - google_ss_agent
+
+Then we will add:
+  - dtmf_sr_agent
+  - dtmf_ss_agent
+
+And later we can have:
+  - julius_sr_agent
+  - jtalk_ss_agent
+  - mbrola_ss_agent
+  - polly_ss_agent
+and so on.
 
 
