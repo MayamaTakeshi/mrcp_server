@@ -27,7 +27,7 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
 		channels: 1,
 	}
 
-	state.dds = new DtmfDetectionStream(format)
+	state.dds = new DtmfDetectionStream(format, {numSamples: 1000})
 	state.digits = ""
 
 	state.dds.on('digit', digit => {
@@ -45,7 +45,7 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
 				},
 			})
 		}
-	}, 50)
+	}, 3000)
 }
 
 module.exports = (parent, uuid) => spawn(
