@@ -66,7 +66,9 @@ module.exports = (parent, uuid) => spawn(
 
 				for(var i=0 ; i<160 ; i++) {
 					// L16 little-endian
-					buf2[i] = u.linear2ulaw((buf[i*2+1] << 8) + buf[i*2])
+					var val = ((buf[i*2+1] << 8) + buf[i*2])
+
+					buf2[i] = u.linear2ulaw(val) 
 				}
 
 				registrar[uuid].rtp_session.send_payload(buf2)
