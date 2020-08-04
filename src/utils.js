@@ -126,6 +126,20 @@ const linear2ulaw = (sample) => {
 }
 
 
+const ulaw2linear = (ulawbyte) => {
+  var exp_lut = [0,132,396,924,1980,4092,8316,16764]
+  var sign, exponent, mantissa, sample
+
+  ulawbyte = ~ulawbyte
+  sign = (ulawbyte & 0x80)
+  exponent = (ulawbyte >> 4) & 0x07
+  mantissa = ulawbyte & 0x0F
+  sample = exp_lut[exponent] + (mantissa << (exponent + 3))
+  if (sign != 0) sample = -sample
+
+  return(sample)
+}
+
 
 module.exports = {
 	parse_sdp,
@@ -139,6 +153,8 @@ module.exports = {
 	gen_random_int,
 
 	linear2ulaw,
+
+	ulaw2linear,
 }
 
 

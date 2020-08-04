@@ -10,6 +10,7 @@ const config = require('config')
 const registrar = require('../registrar.js')
 
 const google_sr_agent = require('./google_sr_agent.js')
+const dtmf_sr_agent = require('./dtmf_sr_agent.js')
 
 var send_start_of_input = (msg) => {
 	logger.log('info', `${u.fn(__filename)} sending event START-OF-INPUT}`)
@@ -62,7 +63,12 @@ module.exports = (parent, uuid) => spawn(
 					dispatch(state.agent, {type: MT.TERMINATE})
 				}
 
-				state.agent = google_sr_agent(ctx.self, uuid)
+				if(msg.data.headers['speech-language'] == 'dtmf') {
+					state.agent = dtmf_sr_agent(ctx.self, uuid)
+				} else {
+					state.agent = google_sr_agent(ctx.self, uuid)
+				}
+
 				dispatch(state.agent, {type: MT.START, data: msg.data})
 
 				logger.log('info', `${u.fn(__filename)} sending reply 200 IN-PROGRESS}`)
