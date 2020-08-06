@@ -16,29 +16,38 @@ Start the server:
   npm install
   export GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/credentials_file.json
   cp config/default.js.sample config/default.js
-  vim config/default.js # ajdust parameters as necessary (minimally, set the local_ip)
+  vim config/default.js # ajdust parameters if necessary
   node index.js
 ```
 
-Then on another machine, clone https://github.com/MayamaTakeshi/mrcp_client and do:
+Then clone https://github.com/MayamaTakeshi/mrcp_client and do:
 
 ```
   cd mrcp_client
   apt/yum install sox
   npm install
   cp config/default.js.sample config/default.js
-  vim config/default.js # ajdust parameters as necessary (minimally, set the local_ip)
+  vim config/default.js # ajdust parameters if necessary
 ```
 
 To test speechsynth:
 
 ```
-  node speechsynth_client.js IP_ADDRESS_OF_SERVER SIP_PORT_OF_SERVER en-US en-US-Wavenet-E "Hello World!"
+  node speechsynth_client.js 127.0.0.1 8070 en-US en-US-Wavenet-E "Hello World!"
+
+  node speechsynth_client.js 127.0.0.1 8070 ja-JP ja-JP-Wavenet-A "おはようございます."
 ```
 
 To test speechrecog:
 
 ````
-  node speechrecog_client.js IP_ADDRESS_OF_SERVER SIP_PORT_OF_SERVER ja-JP artifacts/ohayou_gozaimasu.wav
+  node speechrecog_client.js 127.0.0.1 8070 ja-JP artifacts/ohayou_gozaimasu.wav
+```
+
+If you don't have Google Credentials you can test using DTMF:
+```
+  node speechsynth_client.js 127.0.0.1 8070 dtmf dtmf 1234567890abcd*#
+
+  node speechrecog_client.js 127.0.0.1 8070 dtmf artifacts/dtmf.0123456789ABCDEF.16000hz.wav artifacts/grammar.xml
 ```
 
