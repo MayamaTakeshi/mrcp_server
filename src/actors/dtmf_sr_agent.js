@@ -32,11 +32,13 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
 
 	state.dds.on('digit', digit => {
 		state.digits += digit
+		state.last_digit_time = new Date()
 	})
 
 	state.timer_id = setInterval(() => {
-		var timeDiff = 300
-		if(state.digits != "" && timeDiff > 200) {
+		var now = new Date()
+		var diff = now.getTime() - state.last_digit_time.getTime()
+		if(state.digits != "" && diff > 500) {
 			dispatch(parent, {
 				type: MT.RECOGNITION_COMPLETED,
 				data: {
@@ -45,7 +47,7 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
 				},
 			})
 		}
-	}, 3000)
+	}, 100)
 }
 
 module.exports = (parent, uuid) => spawn(
@@ -57,6 +59,8 @@ module.exports = (parent, uuid) => spawn(
 			state.uuid = uuid
 
 			setup_speechrecog(msg, state, ctx, parent)
+
+			state.last_digit_time = new Date()
 
 			state.rtp_data_handler = data => {
 				console.log("rtp_session data")
