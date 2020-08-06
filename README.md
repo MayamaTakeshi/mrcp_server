@@ -40,7 +40,7 @@ To test speechsynth:
 
 To test speechrecog:
 
-````
+```
   node speechrecog_client.js 127.0.0.1 8070 ja-JP artifacts/ohayou_gozaimasu.wav
 ```
 
