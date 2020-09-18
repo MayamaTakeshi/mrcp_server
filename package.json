@@ -1,6 +1,6 @@
 {
   "name": "mrcp_server",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A simple Media Resource Control Protocol (MRCPv2) server",
   "main": "index.js",
   "scripts": {
