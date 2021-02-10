@@ -10,26 +10,14 @@ const registrar = require('../registrar.js')
 
 const speech = require('@google-cloud/speech')
 
+const speechClient = new speech.SpeechClient()
+
 const stop_myself = (state, ctx) => {
 	console.log("stop_myself")
 	if(state.recognizeStream) {
-		console.log("p1")
 		state.recognizeStream.end()
 		state.recognizeStream = null
 	}
-
-	if(state.speechClient) {
-		console.log("p2")
-		state.speechClient.close()
-		.then(() => {
-			console.log("speechClient closed")
-		})
-		.catch(err => {
-			console.error(`speechClient closure error: ${err}`)
-		})
-		state.speechClient = null
-	}
-	console.log("p3")
 
 	stop(ctx.self)
 }
@@ -48,14 +36,11 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
 		singleUtterance: true,
 	}
 
-	if(!state.speechClient) {
-		logger.log('debug', 'Creating speechClient')
-		state.speechClient = new speech.SpeechClient()
-	}
+
 
 	if(!state.recognizeStream) {
 		logger.log('debug', 'Creating RecognizeStream')
-		state.recognizeStream = state.speechClient
+		state.recognizeStream = speechClient
 			.streamingRecognize(request)
 			.on('error', (error) => { 
 				logger.log('error', `recognizeStream error: ${error}`)
