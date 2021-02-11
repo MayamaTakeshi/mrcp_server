@@ -36,6 +36,9 @@ module.exports = (parent) => spawn(
 					}
 					dispatch(handler, {type: MT.MRCP_MESSAGE, data: data, conn: conn})
 				})
+                conn.on('error', err => {
+					logger.log('error', `${u.fn(__filename)} ${err}`)
+                })
 			})
 
 			state.server.listen(config.mrcp_port, config.local_ip)
