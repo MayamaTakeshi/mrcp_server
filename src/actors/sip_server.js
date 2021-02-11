@@ -80,8 +80,8 @@ var process_incoming_call = (state, req) => {
 		return
 	}
 
-    console.log(`rtp_session_index=${rtp_session_index}`)
-    console.dir(state.rtp_sessions)
+    //console.log(`rtp_session_index=${rtp_session_index}`)
+    //console.dir(state.rtp_sessions)
     var rtp_session = state.rtp_sessions[rtp_session_index]
 
     rtp_session.setup({
@@ -137,13 +137,15 @@ var process_in_dialog_request = (state, req) => {
 
 		var uuid = req.headers['call-id']
 
-		dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid})
+        var call = registrar[uuid]
+
+        if(call) {
+		    dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid, handler: call.handler})
+        }
 
 		logger.log('info', `BYE call_id=${uuid}`)
-		if(registrar[uuid]) {
-			var call = registrar[uuid]
-			state.free_rtp_sessions.push(call.rtp_session._id)
-		}
+		state.free_rtp_sessions.push(call.rtp_session._id)
+        delete registrar[uuid]
 		return
 	}
 
@@ -225,7 +227,9 @@ module.exports = (parent) => spawn(
 						//state.free_rtp_sessions.push(port)
 						state.free_rtp_sessions.push(call.rtp_session._id)
 
-						dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid})
+						dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid, handler: call.handler})
+
+                        delete registrar[uuid]
 
 						state.sip_stack.send({
 							method: 'BYE',

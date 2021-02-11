@@ -61,12 +61,10 @@ module.exports = (parent) => spawn(
 
 			return state
 		} else if(msg.type == MT.SESSION_TERMINATED) {
-			if(! msg.uuid in registrar) return
-			var handler = registrar[msg.uuid].handler
-			if(handler) {
-				dispatch(handler, {type: MT.TERMINATE})	
-			}
-			delete registrar[msg.uuid]
+			var handler = msg.handler
+            if(handler) {
+	    	    dispatch(handler, {type: MT.TERMINATE})	
+            }
 			return state
 		} else {
 			logger.log('error', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
