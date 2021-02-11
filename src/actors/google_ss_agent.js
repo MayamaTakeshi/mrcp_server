@@ -29,9 +29,7 @@ const setup_speechsynth = (ctx, uuid, data, state) => {
 	const outputFile = `./tmp/${uuid}.l16`
 
 	const request = {
-		input: {
-			text: data.body,
-		},
+		input: data.headers['content-type'] == 'application/ssml+xml' ? { ssml: data.body } : { text: data.body },
 		voice: {
 			languageCode: data.headers['speech-language'],
 			name: data.headers['voice-name'],
