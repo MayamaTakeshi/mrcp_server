@@ -53,7 +53,11 @@ module.exports = (parent, uuid) => spawn(
 			}
 			return state
 		} else if(msg.type == MT.MEDIA_OPERATION_COMPLETED) {
-			var event = mrcp.builder.build_event('SPEAK-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'Completion-Cause': '000 normal'})
+            var cause = msg.data.headers['completion-cause']
+            if(!cause) {
+                cause = '000 normal'
+            }
+			var event = mrcp.builder.build_event('SPEAK-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'Completion-Cause': cause})
 			u.safe_write(state.conn, event)
 			state.agent = null
 			return state

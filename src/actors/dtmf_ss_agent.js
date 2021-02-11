@@ -40,9 +40,17 @@ module.exports = (parent, uuid) => spawn(
 
 			state.tone_stream = new ToneStream(format)
 
-			for(var i=0 ; i<msg.data.body.length ; i++) {
+            var tones = msg.data.body
+            if(tones.match(/[^0-9a-fA-F\*\#]/)) {
+                msg.data.headers['completion-cause'] = '002 parse-failure'
+                dispatch(parent, {type: MT.MEDIA_OPERATION_COMPLETED, data: msg.data})
+                stop_myself(state, ctx)
+                return
+            }
+
+			for(var i=0 ; i<tones.length ; i++) {
 				state.tone_stream.add([400, 's'])    // silence
-				state.tone_stream.add([800, 'DTMF:' + msg.data.body.charAt(i)]) 
+				state.tone_stream.add([800, 'DTMF:' + tones.charAt(i)]) 
 			}
 
 			state.tone_stream.add([400, 's'])    // silence
