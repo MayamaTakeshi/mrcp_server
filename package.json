@@ -1,6 +1,6 @@
 {
   "name": "mrcp_server",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A simple Media Resource Control Protocol (MRCPv2) server",
   "main": "index.js",
   "scripts": {
@@ -19,7 +19,7 @@
     "lodash": "^4.17.19",
     "minimist": "^1.2.5",
     "moment": "^2.24.0",
-    "mrcp": "^1.3.1",
+    "mrcp": "^1.3.4",
     "nact": "^7.2.2",
     "sip": "0.0.6",
     "tone-stream": "^1.3.0",
