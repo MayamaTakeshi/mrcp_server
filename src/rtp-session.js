@@ -1,10 +1,32 @@
 const dgram = require("dgram")
 
 class RtpSession {
-	constructor(opts) {
-		this._info = {
-			local_ip: opts.local_ip ? opts.local_ip : '127.0.0.1',
-			local_port: opts.local_port,
+	constructor(socket, id) {
+        this._socket = socket
+        this._id = id
+
+        const address = this._socket.address()
+        this._info = {
+			local_ip: address.address,
+			local_port: address.port,
+        }
+
+		this._socket.on('message', (msg, rinfo) => {
+			if(rinfo.address != this._info.remote_ip || rinfo.port != this._info.remote_port) {
+				console.log(`Ignoring packet out of RTP session from ${rinfo.address}:${rinfo.port}`)
+                return
+			}
+
+			// TODO: must check if message is really an RTP packet
+
+			var data = msg.slice(12) // assume 12 bytes header for now
+			this._socket.emit('data', data) 
+			this._info.activity_ts = Date.now()
+		})
+    }
+
+    setup(opts) {
+		this._info = Object.assign(this._info, {
 			remote_ip: opts.remote_ip ? opts.remote_ip : '127.0.0.1',
 			remote_port: opts.remote_port,
 			payload_type: opts.payload_type ? opts.payload_type : 0,
@@ -14,9 +36,7 @@ class RtpSession {
 			time_stamp: 160,
 
 			activity_ts: Date.now(),
-		}
-
-		console.log(this._info)
+		})
 
 		var version = 2
 		var padding = 0
@@ -38,21 +58,6 @@ class RtpSession {
 		this._hdr[9] = this._info.ssrc >>> 16 & 0xFF
 		this._hdr[10] = this._info.ssrc >>> 8 & 0xFF
 		this._hdr[11] = this._info.ssrc & 0xFF
-
-		this._socket = dgram.createSocket("udp4");
-		this._socket.bind(this._info.local_port, this._info.local_ip)
-
-		this._socket.on('message', (msg, rinfo) => {
-			if(rinfo.address != this._info.remote_ip || rinfo.port != this._info.remote_port) {
-				// ignore packet out of RTP session
-			}
-
-			// TODO: must check if message is really an RTP packet
-
-			var data = msg.slice(12) // assume 12 bytes header for now
-			this._socket.emit('data', data) 
-			this._info.activity_ts = Date.now()
-		})
 	}
 
 	get info() {

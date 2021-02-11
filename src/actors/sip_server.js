@@ -4,6 +4,7 @@ const sip = require('sip')
 //const udp = require('dgram')
 const uuid_v4 = require('uuid').v4
 const Deque = require('collections/deque')
+const _ = require('lodash')
 
 const logger = require('../logger.js')
 const u = require('../utils.js')
@@ -14,8 +15,6 @@ const dm = require('data-matching')
 const registrar = require('../registrar.js')
 
 const config = require('config')
-
-const RtpSession = require('../rtp-session.js')
 
 const sdp_matcher = dm.partial_match({
 	connection: { ip: dm.collect('remote_rtp_ip') },
@@ -61,15 +60,16 @@ var rstring = () => {
 var process_incoming_call = (state, req) => {
 	logger.log('info', 'process_incoming_call')
 
-	var local_rtp_port = state.rtp_ports.shift()
-	if(!local_rtp_port) {
-		state.sip_stack.send(sip.makeResponse(req, 500, 'No RTP port available'))
+	var rtp_session_index = state.free_rtp_sessions.shift()
+	if(rtp_session_index == undefined) {
+        var msg = 'No RTP port available'
+		state.sip_stack.send(sip.makeResponse(req, 500, msg))
+		logger.log('info', msg)
 		return
 	}
 
 	var data = {
 		uuid: req.headers['call-id'],
-		local_rtp_port: local_rtp_port,
 		sip_req: req,
 	}
 
@@ -80,32 +80,24 @@ var process_incoming_call = (state, req) => {
 		return
 	}
 
-	try {
-		var rtp_session = new RtpSession({
-			local_ip: config.local_ip,
-			local_port: data.local_rtp_port,
-			remote_ip: data.remote_rtp_ip, 
-			remote_port: data.remote_rtp_port,
-			payload_type: 0,
-			ssrc: u.gen_random_int(0xffffffff),
-		})
+    console.log(`rtp_session_index=${rtp_session_index}`)
+    console.dir(state.rtp_sessions)
+    var rtp_session = state.rtp_sessions[rtp_session_index]
 
-		data.rtp_session = rtp_session
+    rtp_session.setup({
+        remote_ip: data.remote_rtp_ip, 
+        remote_port: data.remote_rtp_port,
+        payload_type: 0,
+        ssrc: u.gen_random_int(0xffffffff),
+    })
 
-		rtp_session.on('error', (err) => {
-			console.log('error', `Error for rtp_session ${data.uuid}: ${err}`)
-			data.rtp_session = null
-		})
-	} catch (e) {
-		console.dir(e)
-		logger.log('error', e)
-		state.sip_stack.send(sip.makeResponse(req, 500, 'Failed to create local RTP socket'))
-		return
-	}
+    data.local_ip = rtp_session._info.local_ip
+    data.local_port = rtp_session._info.local_port
+	data.rtp_session = rtp_session
 
 	dispatch(state.mrcp_server, {type: MT.SESSION_CREATED, data: data})
 
-	var answer_sdp = gen_sdp(config.local_ip, config.mrcp_port, local_rtp_port, data.connection, data.uuid, data.resource)
+	var answer_sdp = gen_sdp(config.local_ip, config.mrcp_port, rtp_session._info.local_port, data.connection, data.uuid, data.resource)
 
 	var res = sip.makeResponse(req, 200, 'OK')
 
@@ -150,8 +142,7 @@ var process_in_dialog_request = (state, req) => {
 		logger.log('info', `BYE call_id=${uuid}`)
 		if(registrar[uuid]) {
 			var call = registrar[uuid]
-			call.rtp_session.close()
-			state.rtp_ports.push(call.local_rtp_port)
+			state.free_rtp_sessions.push(call.rtp_session._id)
 		}
 		return
 	}
@@ -191,17 +182,36 @@ function create_sip_stack(state) {
 	return sip_stack
 }
 
+
 module.exports = (parent) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
 		//logger.log('info', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
+		logger.log('info', `${u.fn(__filename)} got ${msg.type}`)
+
 		if(msg.type == MT.START) {
-			state.rtp_ports = new Deque()
-			for(var i=config.rtp_lo_port ; i<=config.rtp_hi_port ; i=i+2) {
-				state.rtp_ports.push(i);
-			}
+            state.mrcp_server = msg.data.mrcp_server
+
+            var udp_ports = _.range(config.rtp_lo_port, config.rtp_hi_port, 2)
+
+            state.free_rtp_sessions = new Deque()
+            for(var i=0 ; i<udp_ports.length ; i++) {
+                state.free_rtp_sessions.push(i)
+            }
+
+            u.alloc_rtp_sessions(udp_ports, config.local_ip)
+            .then(rtp_sessions => {
+				dispatch(ctx.self, {type: MT.PROCEED, data: {rtp_sessions: rtp_sessions}})
+            })
+            .catch(err => {
+                console.error("CRITICAL: could not allocate RTP range. Terminating")
+                process.exit(1)
+            })
+            return state
+        } else if(msg.type == MT.PROCEED) { 
+            state.rtp_sessions = msg.data.rtp_sessions
+
 			state.sip_stack = create_sip_stack(state)
-			state.mrcp_server = msg.data.mrcp_server
 
 			state.rtpCheckTimer = setInterval(() => {
 				var now = Date.now()
@@ -210,9 +220,10 @@ module.exports = (parent) => spawn(
 					if(now - call.rtp_session._info.activity_ts > config.rtp_timeout) {
 						logger.log('warning', `Sending BYE to call_id=${uuid} due to RTP inactivity`)
 
-						var port = registrar[uuid].local_rtp_port
-						call.rtp_session.close()
-						state.rtp_ports.push(port)
+						//var port = registrar[uuid].local_rtp_port
+						//call.rtp_session.close()
+						//state.free_rtp_sessions.push(port)
+						state.free_rtp_sessions.push(call.rtp_session._id)
 
 						dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid})
 

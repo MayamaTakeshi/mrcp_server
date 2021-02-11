@@ -3,6 +3,6 @@ module.exports = {
 	sip_port: 8070,
 	mrcp_port: 8888,
 	rtp_lo_port: 10000,
-	rtp_hi_port: 20000,
+	rtp_hi_port: 10400,
 	rtp_timeout: 5000,
 }

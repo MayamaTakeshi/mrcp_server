@@ -2,7 +2,7 @@
 
 THIS IS A WORK IN PROGRESS.
 
-This is an experimental Media Resource Control Protocol server that I'm writing for node.js for learning purposes.
+This is an experimental Media Resource Control Protocol server that I'm writing in node.js for learning purposes.
 
 
 Initial media platform will be Google Voice.
@@ -16,7 +16,7 @@ Start the server:
   npm install
   export GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/credentials_file.json
   cp config/default.js.sample config/default.js
-  vim config/default.js # ajdust parameters if necessary
+  vim config/default.js # adjust parameters if necessary
   node index.js
 ```
 
@@ -27,7 +27,7 @@ Then clone https://github.com/MayamaTakeshi/mrcp_client and do:
   apt/yum install sox
   npm install
   cp config/default.js.sample config/default.js
-  vim config/default.js # ajdust parameters if necessary
+  vim config/default.js # adjust parameters if necessary
 ```
 
 To test speechsynth:
