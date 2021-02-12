@@ -13,7 +13,7 @@ const speech = require('@google-cloud/speech')
 const speechClient = new speech.SpeechClient()
 
 const stop_myself = (state, ctx) => {
-	console.log("stop_myself")
+	logger.log('info', state.uuid, "stop_myself")
 	if(state.recognizeStream) {
 		state.recognizeStream.end()
 		state.recognizeStream = null
@@ -36,14 +36,14 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
 		singleUtterance: true,
 	}
 
-
+    const uuid = state.uuid
 
 	if(!state.recognizeStream) {
-		logger.log('debug', 'Creating RecognizeStream')
+		logger.log('debug', uuid, 'Creating RecognizeStream')
 		state.recognizeStream = speechClient
 			.streamingRecognize(request)
 			.on('error', (error) => { 
-				logger.log('error', `recognizeStream error: ${error}`)
+				logger.log('error', uuid, `recognizeStream error: ${error}`)
 				dispatch(parent, {
 					type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
 					data: {
@@ -53,14 +53,14 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
 				})
 			})
 			.on('data', data => {
-				logger.log('info', `${u.fn(__filename)} RecognizeStream on data: ${JSON.stringify(data)}`)
+				logger.log('info', uuid, `${u.fn(__filename)} RecognizeStream on data: ${JSON.stringify(data)}`)
 
 				var transcript = data.results && data.results[0] ? data.results[0].alternatives[0].transcript : ''
 				var confidence = data.results && data.results[0] ? data.results[0].alternatives[0].confidence : 0
 
 				/*
 				if(data.speechEventType == "END_OF_SINGLE_UTTERANCE") {
-					logger.log('error', 'Unexpected END_OF_SINGLE_UTTERANCE')
+					logger.log('error', uuid, 'Unexpected END_OF_SINGLE_UTTERANCE')
 
 					dispatch(ctx.self, {
 						type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
@@ -86,7 +86,7 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
 				})
 			})
 			.on('close', data => {
-				logger.log('error', `${u.fn(__filename)} RecognizeStream closed`)
+				logger.log('error', uuid, `${u.fn(__filename)} RecognizeStream closed`)
 				dispatch(parent, {
 					type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
 					data: {
@@ -101,8 +101,8 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//logger.log('info', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
-		logger.log('info', `${u.fn(__filename)} got ${msg.type}`)
+		//logger.log('info', uuid, `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
+		logger.log('info', uuid, `${u.fn(__filename)} got ${msg.type}`)
 		if(msg.type == MT.START) {
 			state.uuid = uuid
 
@@ -111,11 +111,10 @@ module.exports = (parent, uuid) => spawn(
 			state.recognition_ongoing = true
 
 			state.rtp_data_handler = data => {
-				//console.log("rtp_session data")
-				//console.log(data)
+				//logger.log('debug', uuid, `rtp_session data ${data}`)
 				if(state.recognizeStream) {
 					var res = state.recognizeStream.write(data)
-					//logger.log('debug', `${uuid} recognizeStream.write() res=${res}`)
+					//logger.log('debug', uuid, `recognizeStream.write() res=${res}`)
 				}
 			}
 
@@ -126,7 +125,7 @@ module.exports = (parent, uuid) => spawn(
 			stop_myself(state, ctx)
 			return
 		} else {
-			logger.log('error', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
+			logger.log('error', uuid, `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
 			return state
 		}
 	}

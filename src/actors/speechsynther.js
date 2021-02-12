@@ -17,14 +17,15 @@ const dtmf_ss_agent = require('./dtmf_ss_agent.js')
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//logger.log('info', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
-		logger.log('info', `${u.fn(__filename)} got ${msg.type}`)
+		//logger.log('info', 'speechsynther', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
+		//logger.log('info','speechsynther', `${u.fn(__filename)} got ${msg.type}`)
 		if(msg.type == MT.START) {
 			return state
 		} else if(msg.type == MT.MRCP_MESSAGE) {
-			logger.log('info', JSON.stringify(msg.data))
+            const uuid = msg.data.uuid
+			logger.log('info', uuid, `MRCP message ${JSON.stringify(msg.data)}`)
 			if(msg.data.method == 'SPEAK') {
-				logger.log('info', `${u.fn(__filename)} sending reply 200 IN-PROGRESS`)
+				logger.log('info', uuid, `${u.fn(__filename)} sending reply 200 IN-PROGRESS`)
 				state.conn = msg.conn
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier']})
 				u.safe_write(state.conn, response)
@@ -40,7 +41,7 @@ module.exports = (parent, uuid) => spawn(
 				}
 				dispatch(state.agent, {type: MT.START, data: msg.data})
 			} else if(msg.data.method == 'STOP') {
-				logger.log('info', `${u.fn(__filename)} sending reply 200 COMPLETE`)
+				logger.log('info', uuid, `${u.fn(__filename)} sending reply 200 COMPLETE`)
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
 				u.safe_write(msg.conn, response)
 
@@ -70,7 +71,7 @@ module.exports = (parent, uuid) => spawn(
 			stop(ctx.self)
 			return
 		} else {
-			logger.log('error', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
+			logger.log('error', uuid, `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
 			return state
 		}
 	}

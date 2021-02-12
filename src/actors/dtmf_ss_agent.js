@@ -27,8 +27,8 @@ var stop_speak = (state) => {
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//logger.log('info', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
-		logger.log('info', `${u.fn(__filename)} got ${msg.type}`)
+		//logger.log('info', uuid, `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
+		logger.log('info', uuid, `${u.fn(__filename)} got ${msg.type}`)
 		if(msg.type == MT.START) {
 			if(!(uuid in registrar)) return
 
@@ -86,7 +86,7 @@ module.exports = (parent, uuid) => spawn(
 			stop_myself(state, ctx)
 			return
 		} else {
-			logger.log('error', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
+			logger.log('error', uuid, `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
 			return state
 		}
 	}

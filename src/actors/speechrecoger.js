@@ -12,14 +12,14 @@ const registrar = require('../registrar.js')
 const google_sr_agent = require('./google_sr_agent.js')
 const dtmf_sr_agent = require('./dtmf_sr_agent.js')
 
-var send_start_of_input = (msg) => {
-	logger.log('info', `${u.fn(__filename)} sending event START-OF-INPUT}`)
+var send_start_of_input = (uuid, msg) => {
+	logger.log('info', uuid, `${u.fn(__filename)} sending event START-OF-INPUT}`)
 	var event = mrcp.builder.build_event('START-OF-INPUT', msg.data.request_id, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier'], 'input-type': 'speech'})
 	u.safe_write(msg.conn, event)
 }
 
-var send_recognition_complete = (state, result, confidence) => {
-	logger.log('info', `${u.fn(__filename)} sending event RECOGNITION-COMPLETE ${result}}`)
+var send_recognition_complete = (uuid, state, result, confidence) => {
+	logger.log('info', uuid, `${u.fn(__filename)} sending event RECOGNITION-COMPLETE ${result}}`)
 	var body = `<?xml version="1.0"?>
 <result>
 	<interpretation grammar="${state.session_string}" confidence="${confidence}">
@@ -35,12 +35,13 @@ var send_recognition_complete = (state, result, confidence) => {
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//logger.log('info', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
-		logger.log('info', `${u.fn(__filename)} got ${msg.type}`)
+		//logger.log('info', 'speechrecoger', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
+		//logger.log('info', 'speechrecoger', `${u.fn(__filename)} got ${msg.type}`)
 		if(msg.type == MT.START) {
 			return state
 		} else if(msg.type == MT.MRCP_MESSAGE) {
-			logger.log('info', JSON.stringify(msg.data))
+            const uuid = msg.data.uuid
+			logger.log('info', uuid, JSON.stringify(msg.data))
 			if(msg.data.method == 'DEFINE-GRAMMAR') {
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success'})
 				u.safe_write(msg.conn, response)
@@ -71,13 +72,13 @@ module.exports = (parent, uuid) => spawn(
 
 				dispatch(state.agent, {type: MT.START, data: msg.data})
 
-				logger.log('info', `${u.fn(__filename)} sending reply 200 IN-PROGRESS}`)
+				logger.log('info', uuid, `${u.fn(__filename)} sending reply 200 IN-PROGRESS`)
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier']})
 				u.safe_write(state.conn, response)
 
-				send_start_of_input(msg)
+				send_start_of_input(uuid, msg)
 			} else if(msg.data.method == 'STOP') {
-				logger.log('info', `${u.fn(__filename)} sending reply 200 COMPLETE}`)
+				logger.log('info', uuid, `${u.fn(__filename)} sending reply 200 COMPLETE`)
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
 				u.safe_write(msg.conn, response)
 
@@ -98,7 +99,7 @@ module.exports = (parent, uuid) => spawn(
 			stop(ctx.self)
 			return
 		} else if(msg.type == MT.RECOGNITION_COMPLETED) {
-			send_recognition_complete(state, msg.data.transcript, msg.data.confidence)
+			send_recognition_complete(uuid, state, msg.data.transcript, msg.data.confidence)
 			state.recognition_ongoing = false
 			if(state.recognizeStream) {
 				state.recognizeStream.end()
@@ -106,7 +107,7 @@ module.exports = (parent, uuid) => spawn(
 			}
 			return state
 		} else if(msg.type == MT.RECOGNITION_COMPLETED_WITH_ERROR) {
-			send_recognition_complete(state, msg.data.transcript, msg.data.confidence)
+			send_recognition_complete(uuid, state, msg.data.transcript, msg.data.confidence)
 			state.recognition_ongoing = false
 			if(state.recognizeStream) {
 				state.recognizeStream.end()
@@ -114,7 +115,7 @@ module.exports = (parent, uuid) => spawn(
 			}
 			return state
 		} else {
-			logger.log('error', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
+			logger.log('error', uuid, `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
 			return state
 		}
 	}

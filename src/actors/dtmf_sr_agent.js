@@ -11,7 +11,7 @@ const registrar = require('../registrar.js')
 const DtmfDetectionStream = require('dtmf-detection-stream')
 
 const stop_myself = (state, ctx) => {
-	console.log("stop_myself")
+	logger.log('info', state.uuid, "stop_myself")
 
 	if(state.timer_id) {
 		clearInterval(state.timer_id)
@@ -53,8 +53,8 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//logger.log('info', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
-		logger.log('info', `${u.fn(__filename)} got ${msg.type}`)
+		//logger.log('info', uuid, `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
+		logger.log('info', uuid, `${u.fn(__filename)} got ${msg.type}`)
 		if(msg.type == MT.START) {
 			state.uuid = uuid
 
@@ -63,8 +63,7 @@ module.exports = (parent, uuid) => spawn(
 			state.last_digit_time = new Date()
 
 			state.rtp_data_handler = data => {
-				console.log("rtp_session data")
-				console.log(data)
+				//logger.log('debug', uuid, "rtp_session data " + data)
 				if(state.dds) {
 					var buf = Buffer.alloc(data.length * 2)
 
@@ -86,7 +85,7 @@ module.exports = (parent, uuid) => spawn(
 			stop_myself(state, ctx)
 			return
 		} else {
-			logger.log('error', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
+			logger.log('error', uuid, `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
 			return state
 		}
 	}
