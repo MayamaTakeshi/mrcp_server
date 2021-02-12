@@ -15,6 +15,7 @@ const dtmf_sr_agent = require('./dtmf_sr_agent.js')
 var send_start_of_input = (uuid, msg) => {
 	logger.log('info', uuid, `${u.fn(__filename)} sending event START-OF-INPUT}`)
 	var event = mrcp.builder.build_event('START-OF-INPUT', msg.data.request_id, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier'], 'input-type': 'speech'})
+    logger.log('info', uuid, `sending MRCP event ${event}`)
 	u.safe_write(msg.conn, event)
 }
 
@@ -29,6 +30,7 @@ var send_recognition_complete = (uuid, state, result, confidence) => {
 </result>`
 
 	var event = mrcp.builder.build_event('RECOGNITION-COMPLETE', state.request_id, 'COMPLETE', {'channel-identifier': state.channel_identifier, 'completion-cause': '000 success', 'content-type': 'application/x-nlsml'}, body)
+    logger.log('info', uuid, `sending MRCP event ${event}`)
 	u.safe_write(state.conn, event)
 }
 
@@ -44,10 +46,12 @@ module.exports = (parent, uuid) => spawn(
 			logger.log('info', uuid, JSON.stringify(msg.data))
 			if(msg.data.method == 'DEFINE-GRAMMAR') {
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success'})
+                logger.log('info', uuid, `sending MRCP response ${response}`)
 				u.safe_write(msg.conn, response)
 			} else if(msg.data.method == 'RECOGNIZE') {
 				if(!(uuid in registrar)) {
 					var response = mrcp.builder.build_response(msg.data.request_id, 405, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
+                    logger.log('info', uuid, `sending MRCP response ${response}`)
 					u.safe_write(msg.conn, response)
 					stop_myself(state, ctx)
 					return
@@ -74,12 +78,13 @@ module.exports = (parent, uuid) => spawn(
 
 				logger.log('info', uuid, `${u.fn(__filename)} sending reply 200 IN-PROGRESS`)
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier']})
+                logger.log('info', uuid, `sending MRCP response ${response}`)
 				u.safe_write(state.conn, response)
 
 				send_start_of_input(uuid, msg)
 			} else if(msg.data.method == 'STOP') {
-				logger.log('info', uuid, `${u.fn(__filename)} sending reply 200 COMPLETE`)
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
+                logger.log('info', uuid, `sending MRCP response ${response}`)
 				u.safe_write(msg.conn, response)
 
 				if(state.agent) {

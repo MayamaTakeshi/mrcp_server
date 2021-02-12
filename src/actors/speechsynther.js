@@ -18,7 +18,7 @@ module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
 		//logger.log('info', 'speechsynther', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
-		//logger.log('info','speechsynther', `${u.fn(__filename)} got ${msg.type}`)
+		logger.log('info','speechsynther', `${u.fn(__filename)} got ${msg.type}`)
 		if(msg.type == MT.START) {
 			return state
 		} else if(msg.type == MT.MRCP_MESSAGE) {
@@ -28,6 +28,7 @@ module.exports = (parent, uuid) => spawn(
 				logger.log('info', uuid, `${u.fn(__filename)} sending reply 200 IN-PROGRESS`)
 				state.conn = msg.conn
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier']})
+                logger.log('info', uuid, `sending MRCP response ${response}`)
 				u.safe_write(state.conn, response)
 
 				if(state.agent) {
@@ -41,8 +42,8 @@ module.exports = (parent, uuid) => spawn(
 				}
 				dispatch(state.agent, {type: MT.START, data: msg.data})
 			} else if(msg.data.method == 'STOP') {
-				logger.log('info', uuid, `${u.fn(__filename)} sending reply 200 COMPLETE`)
 				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
+                logger.log('info', uuid, `sending MRCP response ${response}`)
 				u.safe_write(msg.conn, response)
 
 				if(state.agent) {
@@ -59,6 +60,7 @@ module.exports = (parent, uuid) => spawn(
                 cause = '000 normal'
             }
 			var event = mrcp.builder.build_event('SPEAK-COMPLETE', msg.data.request_id, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'Completion-Cause': cause})
+            logger.log('info', uuid, `sending MRCP event ${event}`)
 			u.safe_write(state.conn, event)
 			state.agent = null
 			return state

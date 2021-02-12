@@ -12,6 +12,7 @@ const ToneStream = require('tone-stream')
 
 
 const stop_myself = (state, ctx) => {
+    logger.log('info', state.uuid, 'stop_myself')
 	stop_speak(state)
 	stop(ctx.self)
 }
@@ -30,6 +31,8 @@ module.exports = (parent, uuid) => spawn(
 		//logger.log('info', uuid, `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
 		logger.log('info', uuid, `${u.fn(__filename)} got ${msg.type}`)
 		if(msg.type == MT.START) {
+            state.uuid = uuid
+
 			if(!(uuid in registrar)) return
 
 			const format = {
