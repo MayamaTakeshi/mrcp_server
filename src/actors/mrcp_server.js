@@ -24,6 +24,7 @@ module.exports = (parent) => spawn(
 					var uuid = data.headers['channel-identifier'].split("@")[0]
 
 					if(! uuid in registrar) {
+                        logger.log('warning', `${u.fn(__filename)} ${uuid} got unexpected MRCP message ${data}`)
 						var response = mrcp.builder.build_response(data.request_id, 405, 'COMPLETE', {'channel-identifier': data.headers['channel-identifier']})
 						u.safe_write(conn, response)
 						return
@@ -31,13 +32,15 @@ module.exports = (parent) => spawn(
 
 					var handler = registrar[uuid].handler
 					if(!handler) {
-						logger.log('error', `${u.fn(__filename)} unexpected MRCP request for uuid=${data.uuid} for non existing handler`)
-						return	
+                        // if we reach here, it probably indicates a bug
+						logger.log('error', `${u.fn(__filename)} ${uuid} unexpected MRCP request for non existing handler`)
+                        process.exit(1)
 					}
+
 					dispatch(handler, {type: MT.MRCP_MESSAGE, data: data, conn: conn})
 				})
                 conn.on('error', err => {
-					logger.log('error', `${u.fn(__filename)} ${err}`)
+					logger.log('error', `${u.fn(__filename)} conn error: ${err}`)
                 })
 			})
 
@@ -48,6 +51,7 @@ module.exports = (parent) => spawn(
 
 			if(registrar[msg.data.uuid].handler) {
 				logger.log('error', `${u.fn(__filename)} unexpected msg SESSION_CREATED for already existing uuid=${msg.data.uuid}`)
+                process.exit(1)
 			}
 
 			var handler

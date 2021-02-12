@@ -1,7 +1,6 @@
 const {spawn, dispatch} = require('nact')
 
 const sip = require('sip')
-//const udp = require('dgram')
 const uuid_v4 = require('uuid').v4
 const Deque = require('collections/deque')
 const _ = require('lodash')
@@ -24,7 +23,7 @@ const sdp_matcher = dm.partial_match({
 			port: 9,
 			protocol: 'TCP/MRCPv2',
 			payloads: ["1"],
-			resource: dm.any_of(['speechsynth', 'speechrecog'], 'resource'),
+			resource: dm.collect('resource'),
 			connection: dm.collect('connection'),
 		},
 		{
@@ -62,16 +61,6 @@ var process_incoming_call = (state, req) => {
 
 	logger.log('info', `process_incoming_call: ${uuid}`)
 
-	var rtp_session_index = state.free_rtp_sessions.shift()
-
-	if(rtp_session_index == undefined) {
-        var rs = 500
-        var rr = 'No RTP port available'
-		state.sip_stack.send(sip.makeResponse(req, rs, rr))
-		logger.log('info', `Refused call ${uuid}: ${rs} ${rr}`)
-		return
-	}
-
 	if(!req.content || req.content == '') {
         var rs = 400
         var rr = 'No SDP (Delayed Media Not Acceptable)'
@@ -89,7 +78,7 @@ var process_incoming_call = (state, req) => {
 
 	if(!sdp_matcher(offer_sdp, data)) {
         var rs = 400
-        var rr = 'Invalid SDP for Speech Service'
+        var rr = 'Invalid SDP For Speech Service'
 		state.sip_stack.send(sip.makeResponse(req, rs, rr))
 		logger.log('info', `Refused call ${uuid}: ${rs} ${rr}`)
 		return
@@ -98,7 +87,25 @@ var process_incoming_call = (state, req) => {
 	if(!data.rtp_payloads.includes("0")) {
         // We currently only accept G.711 PCMU (payload_type=0)
         var rs = 415
-        var rr = 'Unsupported Media Type'
+        var rr = 'Unsupported Media Type (We Only Accept PCMU)'
+		state.sip_stack.send(sip.makeResponse(req, rs, rr))
+		logger.log('info', `Refused call ${uuid}: ${rs} ${rr}`)
+		return
+	}
+ 
+	if(data.resource != 'speechsynth' && data.resource != 'speechrecog') {
+        var rs = 415
+        var rr = 'Unsupported Resource (We Only Accept speechsynth Or speechrecog)'
+		state.sip_stack.send(sip.makeResponse(req, rs, rr))
+		logger.log('info', `Refused call ${uuid}: ${rs} ${rr}`)
+		return
+	}
+
+	var rtp_session_index = state.free_rtp_sessions.shift()
+
+	if(rtp_session_index == undefined) {
+        var rs = 500
+        var rr = 'No RTP Port Available'
 		state.sip_stack.send(sip.makeResponse(req, rs, rr))
 		logger.log('info', `Refused call ${uuid}: ${rs} ${rr}`)
 		return
@@ -134,7 +141,7 @@ var process_incoming_call = (state, req) => {
 
 	state.sip_stack.send(res,
 		function(res) {
-			logger.log('info', "got callback to res sent to out-of-dialog INVITE on sip stack")
+			logger.log('info', `${uuid} got callback to res sent to out-of-dialog INVITE on sip stack`)
 		}
 	)
 
