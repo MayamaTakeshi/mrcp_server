@@ -58,46 +58,68 @@ var rstring = () => {
 };
 
 var process_incoming_call = (state, req) => {
-	logger.log('info', 'process_incoming_call')
+	const uuid = req.headers['call-id']
+
+	logger.log('info', `process_incoming_call: ${uuid}`)
 
 	var rtp_session_index = state.free_rtp_sessions.shift()
+
 	if(rtp_session_index == undefined) {
-        var msg = 'No RTP port available'
-		state.sip_stack.send(sip.makeResponse(req, 500, msg))
-		logger.log('info', msg)
+        var rs = 500
+        var rr = 'No RTP port available'
+		state.sip_stack.send(sip.makeResponse(req, rs, rr))
+		logger.log('info', `Refused call ${uuid}: ${rs} ${rr}`)
 		return
 	}
 
+	if(!req.content || req.content == '') {
+        var rs = 400
+        var rr = 'No SDP (Delayed Media Not Acceptable)'
+		state.sip_stack.send(sip.makeResponse(req, rs, rr))
+		logger.log('info', `Refused call ${uuid}: ${rs} ${rr}`)
+		return
+    }
+
 	var data = {
-		uuid: req.headers['call-id'],
+		uuid: uuid,
 		sip_req: req,
 	}
 
 	var offer_sdp = u.parse_sdp(req.content)
 
 	if(!sdp_matcher(offer_sdp, data)) {
-		state.sip_stack.send(sip.makeResponse(req, 400, 'Invalid SDP'))
+        var rs = 400
+        var rr = 'Invalid SDP for Speech Service'
+		state.sip_stack.send(sip.makeResponse(req, rs, rr))
+		logger.log('info', `Refused call ${uuid}: ${rs} ${rr}`)
+		return
+	}
+ 
+	if(!data.rtp_payloads.includes("0")) {
+        // We currently only accept G.711 PCMU (payload_type=0)
+        var rs = 415
+        var rr = 'Unsupported Media Type'
+		state.sip_stack.send(sip.makeResponse(req, rs, rr))
+		logger.log('info', `Refused call ${uuid}: ${rs} ${rr}`)
 		return
 	}
 
-    //console.log(`rtp_session_index=${rtp_session_index}`)
-    //console.dir(state.rtp_sessions)
     var rtp_session = state.rtp_sessions[rtp_session_index]
 
     rtp_session.setup({
-        remote_ip: data.remote_rtp_ip, 
+        remote_ip: data.remote_rtp_ip,
         remote_port: data.remote_rtp_port,
         payload_type: 0,
         ssrc: u.gen_random_int(0xffffffff),
     })
 
-    data.local_ip = rtp_session._info.local_ip
-    data.local_port = rtp_session._info.local_port
+    data.local_ip = rtp_session.local_ip
+    data.local_port = rtp_session.local_port
 	data.rtp_session = rtp_session
 
 	dispatch(state.mrcp_server, {type: MT.SESSION_CREATED, data: data})
 
-	var answer_sdp = gen_sdp(config.local_ip, config.mrcp_port, rtp_session._info.local_port, data.connection, data.uuid, data.resource)
+	var answer_sdp = gen_sdp(config.local_ip, config.mrcp_port, rtp_session.local_port, data.connection, data.uuid, data.resource)
 
 	var res = sip.makeResponse(req, 200, 'OK')
 
@@ -219,7 +241,7 @@ module.exports = (parent) => spawn(
 				var now = Date.now()
 				Object.keys(registrar).forEach(uuid => {
 					var call = registrar[uuid]
-					if(now - call.rtp_session._info.activity_ts > config.rtp_timeout) {
+					if(now - call.rtp_session.activity_ts > config.rtp_timeout) {
 						logger.log('warning', `Sending BYE to call_id=${uuid} due to RTP inactivity`)
 
 						//var port = registrar[uuid].local_rtp_port
