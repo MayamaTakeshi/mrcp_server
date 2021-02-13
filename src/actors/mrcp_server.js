@@ -38,7 +38,14 @@ module.exports = (parent) => spawn(
 						return
 					}
 
-					var handler = registrar[uuid].handler
+					var call = registrar[uuid]
+					if(!call) {
+                        // if we reach here, it probably indicates a bug
+						log(__line, 'error', uuid, 'unexpected MRCP request for non existing call')
+                        process.exit(1)
+					}
+
+					var handler = call.handler
 					if(!handler) {
                         // if we reach here, it probably indicates a bug
 						log(__line, 'error', uuid, 'unexpected MRCP request for non existing handler')

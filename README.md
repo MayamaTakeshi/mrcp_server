@@ -14,9 +14,9 @@ Start the server:
   cd mrcp_server
   npm install
 
-  # if you have a google credentials file for support for SpeechSynth and/or SpeechRecog export:
-  # if you don't have it, you can still testing by using language='dtmf' 
+  # if you have a google credentials file with support for SpeechSynth and/or SpeechRecog export:
   export GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/credentials_file.json
+  # if you don't have it, it is OK. You can still test it by using language='dtmf'
 
   cp config/default.js.sample config/default.js
   vim config/default.js # adjust parameters if necessary
@@ -37,7 +37,7 @@ We use the nact actor library to permit to better separate concerns. We have the
 
 Basic operation:
   - on startup the sip_server preallocates all UDP ports in the range specified by rtp_lo_port and rtp_hi_port in the config file.
-  - when a valid SIP INVITE arrives from a client, sip_server allocates a rtp_session for it and replies with '100 Trying'
+  - when a valid SIP INVITE arrives from a client, sip_server allocates an rtp_session for it and replies with '100 Trying'
   - then sip_server uses the SIP Call-ID (uuid) to compose the channel-identifier: ${uuid}@${resource}
   - then sip_server adds the call to the registrar (uuid is the key) and sends SESSION_CREATED to mrcp_server 
   - mrcp_server creates a worker (speechsynther or speechrecoger) and sets it in the registrar for that uuid.
@@ -46,7 +46,4 @@ Basic operation:
   - the client creates a TCP connection with mrcp_server and starts exchanging MRCP messages
   - when MCRP messages arrive, mrcp_server send them to the correct resource worker based on channel-identifier
   - the resource workers receive MCRP requests like SPEAK and RECOGNIZE and process them.
-
-
-
 
