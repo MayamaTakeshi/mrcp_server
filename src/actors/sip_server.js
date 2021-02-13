@@ -257,8 +257,9 @@ module.exports = (parent) => spawn(
 				var now = Date.now()
 				Object.keys(registrar).forEach(uuid => {
 					var call = registrar[uuid]
+
 					if(now - call.rtp_session.activity_ts > config.rtp_timeout) {
-						log(__line, 'warn', uuid, 'Sending BYE due to RTP inactivity')
+						log(__line, 'warn', uuid, 'Terminating call due to RTP inactivity')
 
 		                log(__line, 'info', uuid, `deallocated rtp_session ${call.rtp_session.id}`)
 
@@ -269,19 +270,26 @@ module.exports = (parent) => spawn(
                         delete registrar[uuid]
 		                log(__line, 'info', uuid, `removed from registrar`)
 
-						state.sip_stack.send({
-							method: 'BYE',
-							uri: call.sip_req.headers.contact ? call.sip_req.headers.contact[0].uri : call.sip_req.headers.from.uri,
-							headers: {
-								to: call.sip_res.headers.from,
-								from: call.sip_res.headers.to,
-								'call-id': call.sip_req.headers['call-id'],
-								cseq: {method: 'BYE', seq: call.sip_req.headers.cseq.seq + 1},
-								via: []
-							}
-						}, (res) => {
-								log(__line, 'info', uuid, `BYE for call got: ${res.status} ${res.reason}`)	
-						})
+                        if(call.sip_res) {
+                            state.sip_stack.send({
+                                method: 'BYE',
+                                uri: call.sip_req.headers.contact ? call.sip_req.headers.contact[0].uri : call.sip_req.headers.from.uri,
+                                headers: {
+                                    to: call.sip_res.headers.from,
+                                    from: call.sip_res.headers.to,
+                                    'call-id': call.sip_req.headers['call-id'],
+                                    cseq: {method: 'BYE', seq: call.sip_req.headers.cseq.seq + 1},
+                                    via: []
+                                }
+                            }, (res) => {
+                                    log(__line, 'info', uuid, `BYE for call got: ${res.status} ${res.reason}`)	
+                            })
+                        } else {
+                            var rs = 480 
+                            var rr = 'Temporarily Unavailable'
+                            state.sip_stack.send(sip.makeResponse(req, rs, rr))
+                            log(__line, 'info', uuid, `refused with ${rs} ${rr}`)
+                        }
 					}
 				})
 			}, 1000)
