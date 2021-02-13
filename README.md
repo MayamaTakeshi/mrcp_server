@@ -13,7 +13,11 @@ Start the server:
 ```
   cd mrcp_server
   npm install
+
+  # if you have a google credentials file for support for SpeechSynth and/or SpeechRecog export:
+  # if you don't have it, you can still testing by using language='dtmf' 
   export GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/credentials_file.json
+
   cp config/default.js.sample config/default.js
   vim config/default.js # adjust parameters if necessary
   node index.js
@@ -25,20 +29,23 @@ Follow instructions there on how to perform tests and load tests.
 
 ## Development Details
 
-We use the nact actor library to permit to better separate concern. We have the following actors:
+We use the nact actor library to permit to better separate concerns. We have the following actors:
   - sip_server : waits for SIP INVITEs with SDP requesting access to speech resources
   - mrcp_server : waits for MRCP messages and distributes them to resource workers
-  - speechsynter : resource worker for speechsynth
+  - speechsynther : resource worker for speechsynth
   - speechrecoger : resource worker for speechrecog
 
 Basic operation:
   - on startup the sip_server preallocates all UDP ports in the range specified by rtp_lo_port and rtp_hi_port in the config file.
-  - when a valid SIP INVITE arrives, sip_server allocates a rtp_session for it
-  - then it uses the SIP Call-ID (uuid) to compose the channel-identifier: a=channel:${uuid}@${resource}
-  - then it sends SESSION_CREATED to mrcp_server and adds the call to the registrar (uuid is the key)
-  - mrcp_server creates a worker (speechsynther or speechrecoger) and sets it in the registrar for that uuid. This way, 
-when MCRP messages arrive, mrcp_server will be able to send it to the proper worker
-  - the resource workers receive MCRP requests like SPEAK and RECOGNIZE and process them
+  - when a valid SIP INVITE arrives from a client, sip_server allocates a rtp_session for it and replies with '100 Trying'
+  - then sip_server uses the SIP Call-ID (uuid) to compose the channel-identifier: ${uuid}@${resource}
+  - then sip_server adds the call to the registrar (uuid is the key) and sends SESSION_CREATED to mrcp_server 
+  - mrcp_server creates a worker (speechsynther or speechrecoger) and sets it in the registrar for that uuid.
+  - mrcp_server sends SESSION_CREATED_ACK
+  - sip_server send '200 OK' to client
+  - the client creates a TCP connection with mrcp_server and starts exchanging MRCP messages
+  - when MCRP messages arrive, mrcp_server send them to the correct resource worker based on channel-identifier
+  - the resource workers receive MCRP requests like SPEAK and RECOGNIZE and process them.
 
 
 

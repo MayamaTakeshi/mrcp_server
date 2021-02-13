@@ -24,7 +24,7 @@ const log = (line, level, entity, msg) => {
 module.exports = (parent) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//log(__line, 'info', 'mrcp_server', `got ${JSON.stringify(msg)}`)
+		log(__line, 'info', 'mrcp_server', `got ${JSON.stringify(msg)}`)
 		if(msg.type == MT.START) {
 			state.server = mrcp.createServer((conn) => {
 				conn.on('data', data => {
@@ -55,7 +55,10 @@ module.exports = (parent) => spawn(
 			state.server.listen(config.mrcp_port, config.local_ip)
 			return state
 		} else if(msg.type == MT.SESSION_CREATED) {
-			if(!msg.data.uuid in registrar) return
+			if(!msg.data.uuid in registrar) {
+				log(__line, 'error', msg.data.uuid, `not in regstrar (maybe SIP call ended). Ignorign SESSION_CREATED`)
+                return
+            }
 
 			if(registrar[msg.data.uuid].handler) {
 				log(__line, 'error', msg.data.uuid, `unexpected msg SESSION_CREATED for already existing uuid`)
@@ -68,8 +71,13 @@ module.exports = (parent) => spawn(
 			} else {
 				handler = speechrecoger(ctx.self, msg.data.uuid)
 			}
+
+			log(__line, 'error', msg.data.uuid, `setting handler for ${msg.data.resource}`)
+
 			registrar[msg.data.uuid].handler = handler
 			dispatch(handler, {type: MT.START, data: msg.data})
+
+			dispatch(msg.sender, {type: MT.SESSION_CREATED_ACK, data: {uuid: msg.data.uuid}})
 
 			return state
 		} else if(msg.type == MT.SESSION_TERMINATED) {

@@ -18,7 +18,7 @@ const log = (line, level, entity, msg) => {
 }
 
 const stop_myself = (state, ctx) => {
-	log(__line, 'info', state.uuid, __line, "stop_myself")
+	log(__line, 'info', state.uuid, "stop_myself")
 
 	if(state.timer_id) {
 		clearInterval(state.timer_id)
