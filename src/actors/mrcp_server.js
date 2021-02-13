@@ -86,6 +86,7 @@ module.exports = (parent) => spawn(
 			registrar[msg.data.uuid].handler = handler
 			dispatch(handler, {type: MT.START, data: msg.data})
 
+            log(__line, 'info', msg.data.uuid, `sending SESSION_CREATED_ACK to ${JSON.stringify(msg.sender)}`)
 			dispatch(msg.sender, {type: MT.SESSION_CREATED_ACK, data: {uuid: msg.data.uuid}})
 
 			return state
