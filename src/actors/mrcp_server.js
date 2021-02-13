@@ -28,11 +28,12 @@ module.exports = (parent) => spawn(
 		if(msg.type == MT.START) {
 			state.server = mrcp.createServer((conn) => {
 				conn.on('data', data => {
+		            //log(__line, 'info', 'mrcp_server', `got MRCP message ${JSON.stringify(data)}`)
 					var uuid = data.headers['channel-identifier'].split("@")[0]
                     data.uuid = uuid
 
-					if(! uuid in registrar) {
-                        log(__line, 'warning', uuid, `got unexpected MRCP message ${data}`)
+					if(!(uuid in registrar)) {
+                        log(__line, 'warning', uuid, `got unexpected MRCP message ${data} for unknown uuid uuid_in_registrar=${uuid in registrar}`)
 						var response = mrcp.builder.build_response(data.request_id, 405, 'COMPLETE', {'channel-identifier': data.headers['channel-identifier']})
 						u.safe_write(conn, response)
 						return
@@ -41,19 +42,20 @@ module.exports = (parent) => spawn(
 					var call = registrar[uuid]
 					if(!call) {
                         // if we reach here, it probably indicates a bug
-						log(__line, 'error', uuid, 'unexpected MRCP request for non existing call')
+						log(__line, 'error', uuid, `unexpected MRCP request for non existing call uuid_in_registrar=${uuid in registrar} call=${call} ${JSON.stringify(data)}`)
                         process.exit(1)
 					}
 
 					var handler = call.handler
 					if(!handler) {
                         // if we reach here, it probably indicates a bug
-						log(__line, 'error', uuid, 'unexpected MRCP request for non existing handler')
+						log(__line, 'error', uuid, `unexpected MRCP request for non existing handler uuid_in_registrar=${uuid in registrar} call=${call} handler=${handler} ${JSON.stringify(data)}`)
                         process.exit(1)
 					}
 
 					dispatch(handler, {type: MT.MRCP_MESSAGE, data: data, conn: conn})
 				})
+
                 conn.on('error', err => {
 					log(__line, 'error', 'mrcp_server', `conn error: ${err}`)
                 })
@@ -62,8 +64,8 @@ module.exports = (parent) => spawn(
 			state.server.listen(config.mrcp_port, config.local_ip)
 			return state
 		} else if(msg.type == MT.SESSION_CREATED) {
-			if(!msg.data.uuid in registrar) {
-				log(__line, 'error', msg.data.uuid, `not in regstrar (maybe SIP call ended). Ignorign SESSION_CREATED`)
+			if(!(msg.data.uuid in registrar)) {
+				log(__line, 'error', msg.data.uuid, `not in registrar (maybe SIP call ended). Ignorign SESSION_CREATED`)
                 return
             }
 

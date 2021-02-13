@@ -287,7 +287,7 @@ module.exports = (parent) => spawn(
                         } else {
                             var rs = 480 
                             var rr = 'Temporarily Unavailable'
-                            state.sip_stack.send(sip.makeResponse(req, rs, rr))
+                            state.sip_stack.send(sip.makeResponse(call.sip_req, rs, rr))
                             log(__line, 'info', uuid, `refused with ${rs} ${rr}`)
                         }
 					}

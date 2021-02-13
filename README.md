@@ -39,7 +39,7 @@ Basic operation:
   - on startup the sip_server preallocates all UDP ports in the range specified by rtp_lo_port and rtp_hi_port in the config file.
   - when a valid SIP INVITE arrives from a client, sip_server allocates an rtp_session for it and replies with '100 Trying'
   - then sip_server uses the SIP Call-ID (uuid) to compose the channel-identifier: ${uuid}@${resource}
-  - then sip_server adds the call to the registrar (uuid is the key) and sends SESSION_CREATED to mrcp_server 
+  - then sip_server adds the call to the registrar (uuid is the key) and sends SESSION_CREATED to mrcp_server (obs: registrar is a common object to store existing calls (it is not a SIP Registrar).
   - mrcp_server creates a worker (speechsynther or speechrecoger) and sets it in the registrar for that uuid.
   - mrcp_server sends SESSION_CREATED_ACK
   - sip_server send '200 OK' to client
