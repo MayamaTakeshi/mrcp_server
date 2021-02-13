@@ -39,7 +39,7 @@ module.exports = (parent, uuid) => spawn(
 		if(msg.type == MT.START) {
             state.uuid = uuid
 
-			if(!(uuid in registrar)) return
+            if(!registrar.hasOwnProperty(uuid)) return
 
 			const format = {
 				sampleRate: 8000,
@@ -67,7 +67,7 @@ module.exports = (parent, uuid) => spawn(
 			state.timer_id = setInterval(() => {
 				if(state.aborted) return
 
-				if(!(uuid in registrar)) {
+                if(!registrar.hasOwnProperty(uuid)) {
 					stop_speak(state)
 					return
 				}

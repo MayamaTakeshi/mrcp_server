@@ -298,7 +298,7 @@ module.exports = (parent) => spawn(
         } else if(msg.type == MT.SESSION_CREATED_ACK) { 
             var uuid = msg.data.uuid
 
-			if(! uuid in registrar) {
+            if(!(registrar.hasOwnProperty(uuid)) {
                 log(__line, 'info', uuid, `not in registrar anymore`)
                 return
             }

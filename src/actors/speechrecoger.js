@@ -70,7 +70,7 @@ module.exports = (parent, uuid) => spawn(
 				var response = mrcp.builder.build_response(req_id, rs, rr, headers)
 				u.safe_write(msg.conn, response)
 			} else if(msg.data.method == 'RECOGNIZE') {
-				if(!(uuid in registrar)) {
+                if(!registrar.hasOwnProperty(uuid)) {
                     var rs = 405
                     var rr = 'COMPLETE'
                     var headers = {'channel-identifier': msg.data.headers['channel-identifier']}

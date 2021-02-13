@@ -121,7 +121,7 @@ module.exports = (parent, uuid) => spawn(
 		} else if(msg.type == 'TTS_FILE_READY') {
 			if(state.aborted) return
 
-			if(!(uuid in registrar)) return
+            if(!registrar.hasOwnProperty(uuid)) return 
 
 			state.path = msg.path
 
@@ -139,7 +139,7 @@ module.exports = (parent, uuid) => spawn(
 				state.timer_id = setInterval(() => {
 					if(state.aborted) return
 
-					if(!(uuid in registrar)) {
+                    if(!registrar.hasOwnProperty(uuid)) {
 						stop_speak(state)
 						return
 					}
@@ -153,7 +153,7 @@ module.exports = (parent, uuid) => spawn(
 							return
 						}
 
-						if(!(uuid in registrar)) {
+                        if(!registrar.hasOwnProperty(uuid)) { 
 							stop_speak(state)
 							return
 						}
