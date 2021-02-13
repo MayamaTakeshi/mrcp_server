@@ -1,3 +1,4 @@
+require('magic-globals')
 const {spawn, dispatch, stop} = require('nact')
 
 const logger = require('../logger.js')
@@ -10,9 +11,14 @@ const registrar = require('../registrar.js')
 
 const ToneStream = require('tone-stream')
 
+const FILE = u.filename()
+
+const log = (line, level, entity, msg) => {
+    logger.log(level, entity, `(${FILE}:${line}) ${msg}`)
+}
 
 const stop_myself = (state, ctx) => {
-    logger.log('info', state.uuid, 'stop_myself')
+    log(__line, 'info', state.uuid, 'stop_myself')
 	stop_speak(state)
 	stop(ctx.self)
 }
@@ -28,8 +34,8 @@ var stop_speak = (state) => {
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//logger.log('info', uuid, `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
-		logger.log('info', uuid, `${u.fn(__filename)} got ${msg.type}`)
+		//log(__line, 'info', uuid, `got ${JSON.stringify(msg)}`)
+		log(__line, 'info', uuid, `got ${msg.type}`)
 		if(msg.type == MT.START) {
             state.uuid = uuid
 
@@ -89,7 +95,7 @@ module.exports = (parent, uuid) => spawn(
 			stop_myself(state, ctx)
 			return
 		} else {
-			logger.log('error', uuid, `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
+			log(__line, 'error', uuid, `got unexpected message ${JSON.stringify(msg)}`)
 			return state
 		}
 	}

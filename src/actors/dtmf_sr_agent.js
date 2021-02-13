@@ -1,3 +1,4 @@
+require('magic-globals')
 const {spawn, dispatch, stop} = require('nact')
 
 const logger = require('../logger.js')
@@ -10,8 +11,14 @@ const registrar = require('../registrar.js')
 
 const DtmfDetectionStream = require('dtmf-detection-stream')
 
+const FILE = u.filename()
+
+const log = (line, level, entity, msg) => {
+    logger.log(level, entity, `(${FILE}:${line}) ${msg}`)
+}
+
 const stop_myself = (state, ctx) => {
-	logger.log('info', state.uuid, "stop_myself")
+	log(__line, 'info', state.uuid, __line, "stop_myself")
 
 	if(state.timer_id) {
 		clearInterval(state.timer_id)
@@ -53,8 +60,8 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//logger.log('info', uuid, `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
-		logger.log('info', uuid, `${u.fn(__filename)} got ${msg.type}`)
+		//log(__line, 'info', uuid, `got ${JSON.stringify(msg)}`)
+		log(__line, 'info', uuid, `got ${msg.type}`)
 		if(msg.type == MT.START) {
 			state.uuid = uuid
 
@@ -63,7 +70,7 @@ module.exports = (parent, uuid) => spawn(
 			state.last_digit_time = new Date()
 
 			state.rtp_data_handler = data => {
-				//logger.log('debug', uuid, "rtp_session data " + data)
+				//log(__line, 'debug', uuid, "rtp_session data " + data)
 				if(state.dds) {
 					var buf = Buffer.alloc(data.length * 2)
 
@@ -85,7 +92,7 @@ module.exports = (parent, uuid) => spawn(
 			stop_myself(state, ctx)
 			return
 		} else {
-			logger.log('error', uuid, `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
+			log(__line, 'error', uuid, `got unexpected message ${JSON.stringify(msg)}`)
 			return state
 		}
 	}

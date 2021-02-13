@@ -1,3 +1,4 @@
+require('magic-globals')
 const {spawn, dispatch} = require('nact')
 const mrcp = require('mrcp')
 
@@ -14,10 +15,16 @@ const speechrecoger = require('../actors/speechrecoger.js')
 
 const registrar = require('../registrar.js')
 
+const FILE = u.filename()
+
+const log = (line, level, entity, msg) => {
+    logger.log(level, entity, `(${FILE}:${line}) ${msg}`)
+}
+
 module.exports = (parent) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//logger.log('info', 'mrcp_server', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
+		//log(__line, 'info', 'mrcp_server', `got ${JSON.stringify(msg)}`)
 		if(msg.type == MT.START) {
 			state.server = mrcp.createServer((conn) => {
 				conn.on('data', data => {
@@ -25,7 +32,7 @@ module.exports = (parent) => spawn(
                     data.uuid = uuid
 
 					if(! uuid in registrar) {
-                        logger.log('warning', uuid, `${u.fn(__filename)} got unexpected MRCP message ${data}`)
+                        log(__line, 'warning', uuid, `got unexpected MRCP message ${data}`)
 						var response = mrcp.builder.build_response(data.request_id, 405, 'COMPLETE', {'channel-identifier': data.headers['channel-identifier']})
 						u.safe_write(conn, response)
 						return
@@ -34,14 +41,14 @@ module.exports = (parent) => spawn(
 					var handler = registrar[uuid].handler
 					if(!handler) {
                         // if we reach here, it probably indicates a bug
-						logger.log('error', uuid, `${u.fn(__filename)} unexpected MRCP request for non existing handler`)
+						log(__line, 'error', uuid, 'unexpected MRCP request for non existing handler')
                         process.exit(1)
 					}
 
 					dispatch(handler, {type: MT.MRCP_MESSAGE, data: data, conn: conn})
 				})
                 conn.on('error', err => {
-					logger.log('error', 'mrcp_server', `${u.fn(__filename)} conn error: ${err}`)
+					log(__line, 'error', 'mrcp_server', `conn error: ${err}`)
                 })
 			})
 
@@ -51,7 +58,7 @@ module.exports = (parent) => spawn(
 			if(!msg.data.uuid in registrar) return
 
 			if(registrar[msg.data.uuid].handler) {
-				logger.log('error', msg.data.uuid, `${u.fn(__filename)} unexpected msg SESSION_CREATED for already existing uuid`)
+				log(__line, 'error', msg.data.uuid, `unexpected msg SESSION_CREATED for already existing uuid`)
                 process.exit(1)
 			}
 
@@ -72,7 +79,7 @@ module.exports = (parent) => spawn(
             }
 			return state
 		} else {
-			logger.log('error', 'mrcp_server', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
+			log(__line, 'error', 'mrcp_server', `got unexpected message ${JSON.stringify(msg)}`)
 			return state
 		}
 	},

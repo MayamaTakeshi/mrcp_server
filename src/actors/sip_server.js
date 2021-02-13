@@ -1,3 +1,4 @@
+require('magic-globals')
 const {spawn, dispatch} = require('nact')
 
 const sip = require('sip')
@@ -14,6 +15,12 @@ const dm = require('data-matching')
 const registrar = require('../registrar.js')
 
 const config = require('config')
+
+const FILE = u.filename()
+
+const log = (level, entity, line, msg) => {
+    logger.log(level, entity, `(${FILE}:${line}) ${msg}`)
+}
 
 const sdp_matcher = dm.partial_match({
 	connection: { ip: dm.collect('remote_rtp_ip') },
@@ -57,13 +64,13 @@ var rstring = () => {
 };
 
 var process_incoming_call = (uuid, state, req) => {
-	logger.log('info', uuid, 'Initial INVITE')
+	log('info', uuid, __line, 'got new call')
 
 	if(!req.content || req.content == '') {
         var rs = 400
         var rr = 'No SDP (Delayed Media Not Acceptable)'
 		state.sip_stack.send(sip.makeResponse(req, rs, rr))
-		logger.log('info', uuid, `Refused with ${rs} ${rr}`)
+		log('info', uuid, __line, `refused with ${rs} ${rr}`)
 		return
     }
 
@@ -78,7 +85,7 @@ var process_incoming_call = (uuid, state, req) => {
         var rs = 400
         var rr = 'Invalid SDP For Speech Service'
 		state.sip_stack.send(sip.makeResponse(req, rs, rr))
-		logger.log('info', uuid, `Refused with ${rs} ${rr}`)
+		log('info', uuid, __line, `refused with ${rs} ${rr}`)
 		return
 	}
  
@@ -87,7 +94,7 @@ var process_incoming_call = (uuid, state, req) => {
         var rs = 415
         var rr = 'Unsupported Media Type (We Only Accept PCMU)'
 		state.sip_stack.send(sip.makeResponse(req, rs, rr))
-		logger.log('info', uuid, `Refused with ${rs} ${rr}`)
+		log('info', uuid, __line, `refused with ${rs} ${rr}`)
 		return
 	}
  
@@ -95,7 +102,7 @@ var process_incoming_call = (uuid, state, req) => {
         var rs = 415
         var rr = 'Unsupported Resource (We Only Accept speechsynth Or speechrecog)'
 		state.sip_stack.send(sip.makeResponse(req, rs, rr))
-		logger.log('info', uuid, `Refused with ${rs} ${rr}`)
+		log('info', uuid, __line, `refused with ${rs} ${rr}`)
 		return
 	}
 
@@ -105,9 +112,11 @@ var process_incoming_call = (uuid, state, req) => {
         var rs = 500
         var rr = 'No RTP Port Available'
 		state.sip_stack.send(sip.makeResponse(req, rs, rr))
-		logger.log('info', uuid, `Refused with ${rs} ${rr}`)
+		log('info', uuid, __line, `refused with ${rs} ${rr}`)
 		return
 	}
+
+	log('info', uuid, __line, `allocated rtp_session ${rtp_session_index}`)
 
     var rtp_session = state.rtp_sessions[rtp_session_index]
 
@@ -126,7 +135,9 @@ var process_incoming_call = (uuid, state, req) => {
 
 	var answer_sdp = gen_sdp(config.local_ip, config.mrcp_port, rtp_session.local_port, data.connection, data.uuid, data.resource)
 
-	var res = sip.makeResponse(req, 200, 'OK')
+    var rs = 200
+    var rr = 'OK'
+	var res = sip.makeResponse(req, rs, rr)
 
 	res.headers.to.params.tag = rstring()
 
@@ -139,11 +150,14 @@ var process_incoming_call = (uuid, state, req) => {
 
 	state.sip_stack.send(res,
 		function(res) {
-			logger.log('info', uuid, 'got callback to res sent to out-of-dialog INVITE on sip stack')
+			log('info', uuid, __line, 'got callback to res sent to out-of-dialog INVITE on sip stack')
 		}
 	)
 
+    log('info', uuid, __line, `accepted with ${rs} ${rr}`)
+
 	registrar[data.uuid] = data
+    log('info', uuid, __line, `added to registrar`)
 }
 
 var process_in_dialog_request = (uuid, state, req) => {
@@ -153,7 +167,7 @@ var process_in_dialog_request = (uuid, state, req) => {
 	}
 
 	if(req.method != 'INVITE' && req.method != 'BYE') {
-		logger.log('info', uuid, `Unexpected in-dialog ${req.method}. Sending default '200 OK' reply`)
+		log('info', uuid, __line, `unexpected in-dialog ${req.method}. Sending default '200 OK' reply`)
 		state.sip_stack.send(sip.makeResponse(req, 200, 'OK'))
 		return
 	}
@@ -168,13 +182,18 @@ var process_in_dialog_request = (uuid, state, req) => {
 		    dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid, handler: call.handler})
         }
 
-		logger.log('info', uuid, 'received BYE')
-		state.free_rtp_sessions.push(call.rtp_session._id)
+		log('info', uuid, __line, 'received BYE')
+		log('info', uuid, __line, `deallocated rtp_session ${call.rtp_session.id}`)
+
+		state.free_rtp_sessions.push(call.rtp_session.id)
+
         delete registrar[uuid]
+		log('info', uuid, __line, `removed from registrar`)
+
 		return
 	}
 
-	logger.log('error', uuid, "REINVITE SUPPORT IMPLEMENTATION PENDING")
+	log('error', uuid, __line, "REINVITE SUPPORT IMPLEMENTATION PENDING")
 	process.exit(1)
 }
 
@@ -187,7 +206,7 @@ function create_sip_stack(state) {
 	function(req) {
 		try {
 	        const uuid = req.headers['call-id']
-			logger.log('info', uuid, `Incoming request ${req.method}`);
+			log('info', uuid, __line, `got SIP request ${req.method}`);
 			var to_tag = req.headers['to'].params.tag
 
 			if(!to_tag && req.method != 'INVITE') {
@@ -203,7 +222,7 @@ function create_sip_stack(state) {
 
 			process_incoming_call(uuid, state, req);
 		} catch(err) {
-			console.logger.log(err)
+			log('error', 'sip_server', __line, err)
 			process.exit(100)
 		}
 	})
@@ -214,8 +233,8 @@ function create_sip_stack(state) {
 module.exports = (parent) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//logger.log('info', 'sip_server', `got ${JSON.stringify(msg)}`)
-		logger.log('info', 'sip_server', `got ${msg.type}`)
+		//log('info', 'sip_server', __line, `got ${JSON.stringify(msg)}`)
+		log('info', 'sip_server', __line, `got ${msg.type}`)
 
 		if(msg.type == MT.START) {
             state.mrcp_server = msg.data.mrcp_server
@@ -246,13 +265,16 @@ module.exports = (parent) => spawn(
 				Object.keys(registrar).forEach(uuid => {
 					var call = registrar[uuid]
 					if(now - call.rtp_session.activity_ts > config.rtp_timeout) {
-						logger.log('warning', uuid, 'Sending BYE due to RTP inactivity')
+						log('warning', uuid, __line, 'Sending BYE due to RTP inactivity')
 
-						state.free_rtp_sessions.push(call.rtp_session._id)
+		                log('info', uuid, __line, `deallocated rtp_session ${call.rtp_session.id}`)
+
+						state.free_rtp_sessions.push(call.rtp_session.id)
 
 						dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid, handler: call.handler})
 
                         delete registrar[uuid]
+		                log('info', uuid, __line, `removed from registrar`)
 
 						state.sip_stack.send({
 							method: 'BYE',
@@ -265,7 +287,7 @@ module.exports = (parent) => spawn(
 								via: []
 							}
 						}, (res) => {
-								logger.log('info', uuid, `BYE for call got: ${res.status} ${res.reason}`)	
+								log('info', uuid, __line, `BYE for call got: ${res.status} ${res.reason}`)	
 						})
 					}
 				})
@@ -273,7 +295,7 @@ module.exports = (parent) => spawn(
 
 			return state
 		} else {
-			logger.log('error', 'sip_server', `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
+			log('error', 'sip_server', __line, `got unexpected message ${JSON.stringify(msg)}`)
 			return state
 		}
 	},

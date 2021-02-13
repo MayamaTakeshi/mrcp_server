@@ -1,3 +1,4 @@
+require('magic-globals')
 const {spawn, dispatch, stop} = require('nact')
 
 const fs = require('fs')
@@ -13,6 +14,12 @@ const config = require('config')
 const registrar = require('../registrar.js')
 
 const stream = require('stream')
+
+const FILE = u.filename()
+
+const log = (line, level, entity, msg) => {
+    logger.log(level, entity, `(${FILE}:${line}) ${msg}`)
+}
 
 const stop_myself = (state, ctx) => {
 	stop_speak(state)
@@ -46,7 +53,7 @@ const setup_speechsynth = (ctx, uuid, data, state) => {
 		if(state.aborted) return
 
 		if(err) {
-			logger.log('error', uuid, `synthesizeSpeech error: ${err}`)
+			log(__line, 'error', uuid, `synthesizeSpeech error: ${err}`)
 			return
 		}
 
@@ -67,7 +74,7 @@ const setup_speechsynth = (ctx, uuid, data, state) => {
 			if(state.aborted) return
 
 			if(err) {
-				logger.log('error', uuid, `Audio content failed to be written to file ${outputFile}. err=${err}`)
+				log(__line, 'error', uuid, `audio content failed to be written to file ${outputFile}. err=${err}`)
 				return
 			}
 		})
@@ -75,15 +82,15 @@ const setup_speechsynth = (ctx, uuid, data, state) => {
 		writeStream.on('finish', () => {
 			if(state.aborted) return
 
-			logger.log('info', uuid, `Audio content written to file: ${outputFile}`)
+			log(__line, 'info', uuid, `audio content written to file: ${outputFile}`)
 			dispatch(ctx.self, {type: MT.TTS_FILE_READY, data: data, path: outputFile})
 
 			client.close()
 			.then(res => {
-				logger.log('info', uuid, `TextToSpeechClient closed successfully}`)
+				log(__line, 'info', uuid, `text-to-speech client closed successfully}`)
 			})
 			.catch(err => {
-				logger.log('error', uuid, `TextToSpeechClient closure failed: ${err}`)
+				log(__line, 'error', uuid, `text-to-speech client closure failed: ${err}`)
 			})
 		})
 
@@ -106,8 +113,8 @@ var stop_speak = (state) => {
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//logger.log('info', uuid, `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
-		logger.log('info', uuid, `${u.fn(__filename)} got ${msg.type}`)
+		//log(__line, 'info', uuid, `got ${JSON.stringify(msg)}`)
+		log(__line, 'info', uuid, `got ${msg.type}`)
 		if(msg.type == MT.START) {
 			setup_speechsynth(ctx, uuid, msg.data, state)
 			return state
@@ -122,7 +129,7 @@ module.exports = (parent, uuid) => spawn(
 				if(state.aborted) return
 
 				if(err) {
-					logger.log('error', uuid, `Failed to open ${msg.path}`)
+					log(__line, 'error', uuid, `failed to open ${msg.path}`)
 					return
 				}
 
@@ -141,7 +148,7 @@ module.exports = (parent, uuid) => spawn(
 						if(state.aborted) return
 						
 						if(err) {
-							logger.log('error', uuid, `Reading ${msg.path} failed with ${err}`)
+							log(__line, 'error', uuid, `reading ${msg.path} failed with ${err}`)
 							stop_speak(state)
 							return
 						}
@@ -154,7 +161,7 @@ module.exports = (parent, uuid) => spawn(
 						var data = registrar[uuid]
 
 						if(len == 0) {
-							logger.log('info', uuid, `Reading ${msg.path} reached end of file`)
+							log(__line, 'info', uuid, `reading ${msg.path} reached end of file`)
 								
 							dispatch(parent, {type: MT.MEDIA_OPERATION_COMPLETED, data: msg.data})
 							stop_myself(state, ctx)
@@ -175,7 +182,7 @@ module.exports = (parent, uuid) => spawn(
 			stop_myself(state, ctx)
 			return
 		} else {
-			logger.log('error', uuid, `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
+			log(__line, 'error', uuid, `got unexpected message ${JSON.stringify(msg)}`)
 			return state
 		}
 	}

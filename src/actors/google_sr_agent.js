@@ -1,3 +1,4 @@
+require('magic-globals')
 const {spawn, dispatch, stop} = require('nact')
 
 const logger = require('../logger.js')
@@ -12,8 +13,14 @@ const speech = require('@google-cloud/speech')
 
 const speechClient = new speech.SpeechClient()
 
+const FILE = u.filename()
+
+const log = (line, level, entity, msg) => {
+    logger.log(level, entity, `(${FILE}:${line}) ${msg}`)
+}
+
 const stop_myself = (state, ctx) => {
-	logger.log('info', state.uuid, "stop_myself")
+	log(__line, 'info', state.uuid, "stop_myself")
 	if(state.recognizeStream) {
 		state.recognizeStream.end()
 		state.recognizeStream = null
@@ -39,11 +46,11 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
     const uuid = state.uuid
 
 	if(!state.recognizeStream) {
-		logger.log('debug', uuid, 'Creating RecognizeStream')
+		log(__line, 'debug', uuid, 'Creating RecognizeStream')
 		state.recognizeStream = speechClient
 			.streamingRecognize(request)
 			.on('error', (error) => { 
-				logger.log('error', uuid, `recognizeStream error: ${error}`)
+				log(__line, 'error', uuid, `recognizeStream error: ${error}`)
 				dispatch(parent, {
 					type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
 					data: {
@@ -53,14 +60,14 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
 				})
 			})
 			.on('data', data => {
-				logger.log('info', uuid, `${u.fn(__filename)} RecognizeStream on data: ${JSON.stringify(data)}`)
+				log(__line, 'info', uuid, `recognizeStream data: ${JSON.stringify(data)}`)
 
 				var transcript = data.results && data.results[0] ? data.results[0].alternatives[0].transcript : ''
 				var confidence = data.results && data.results[0] ? data.results[0].alternatives[0].confidence : 0
 
 				/*
 				if(data.speechEventType == "END_OF_SINGLE_UTTERANCE") {
-					logger.log('error', uuid, 'Unexpected END_OF_SINGLE_UTTERANCE')
+					log(__line, 'error', uuid, 'Unexpected END_OF_SINGLE_UTTERANCE')
 
 					dispatch(ctx.self, {
 						type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
@@ -86,7 +93,7 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
 				})
 			})
 			.on('close', data => {
-				logger.log('error', uuid, `${u.fn(__filename)} RecognizeStream closed`)
+				log(__line, 'error', uuid, `recognizeStream closed`)
 				dispatch(parent, {
 					type: MT.RECOGNITION_COMPLETED_WITH_ERROR,
 					data: {
@@ -101,8 +108,8 @@ const setup_speechrecog = (msg, state, ctx, parent) => {
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//logger.log('info', uuid, `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
-		logger.log('info', uuid, `${u.fn(__filename)} got ${msg.type}`)
+		//log(__line, 'info', uuid, `got ${JSON.stringify(msg)}`)
+		log(__line, 'info', uuid, `got ${msg.type}`)
 		if(msg.type == MT.START) {
 			state.uuid = uuid
 
@@ -111,10 +118,10 @@ module.exports = (parent, uuid) => spawn(
 			state.recognition_ongoing = true
 
 			state.rtp_data_handler = data => {
-				//logger.log('debug', uuid, `rtp_session data ${data}`)
+				//log(__line, 'debug', uuid, `rtp_session data ${data}`)
 				if(state.recognizeStream) {
 					var res = state.recognizeStream.write(data)
-					//logger.log('debug', uuid, `recognizeStream.write() res=${res}`)
+					//log(__line, 'debug', uuid, `recognizeStream.write() res=${res}`)
 				}
 			}
 
@@ -125,7 +132,7 @@ module.exports = (parent, uuid) => spawn(
 			stop_myself(state, ctx)
 			return
 		} else {
-			logger.log('error', uuid, `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
+			log(__line, 'error', uuid, `got unexpected message ${JSON.stringify(msg)}`)
 			return state
 		}
 	}

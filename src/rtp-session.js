@@ -3,7 +3,7 @@ const dgram = require("dgram")
 class RtpSession {
 	constructor(socket, id) {
         this._socket = socket
-        this._id = id
+        this.id = id
 
         const address = this._socket.address()
         this.local_ip = address.address

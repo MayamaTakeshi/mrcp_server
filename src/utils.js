@@ -1,3 +1,4 @@
+require('magic-globals')
 const path = require('path')
 const assert = require('assert')
 
@@ -187,7 +188,8 @@ module.exports = {
 
 	parse_sdp,
 
-	fn: (filepath) => {
+	filename: () => {
+        var filepath = __stack[1].getFileName()
 		return path.basename(filepath)
 	},
 

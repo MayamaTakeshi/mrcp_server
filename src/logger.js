@@ -1,3 +1,5 @@
+require('magic-globals')
+const path = require('path')
 const m = require('moment')
 
 module.exports = {

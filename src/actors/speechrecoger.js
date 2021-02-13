@@ -1,3 +1,4 @@
+require('magic-globals')
 const {spawn, dispatch, stop} = require('nact')
 const mrcp = require('mrcp')
 
@@ -12,15 +13,28 @@ const registrar = require('../registrar.js')
 const google_sr_agent = require('./google_sr_agent.js')
 const dtmf_sr_agent = require('./dtmf_sr_agent.js')
 
+const FILE = u.filename()
+
+const log = (level, entity, line, msg) => {
+    logger.log(level, entity, `(${FILE}:${line}) ${msg}`)
+}
+
 var send_start_of_input = (uuid, msg) => {
-	logger.log('info', uuid, `${u.fn(__filename)} sending event START-OF-INPUT}`)
-	var event = mrcp.builder.build_event('START-OF-INPUT', msg.data.request_id, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier'], 'input-type': 'speech'})
-    logger.log('info', uuid, `sending MRCP event ${event}`)
+    var evt = 'START-OF-INPUT'
+	var req_id = msg.data.request_id
+    var req_state = 'IN-PROGRESS'
+    var headers = {'channel-identifier': msg.data.headers['channel-identifier'], 'input-type': 'speech'}
+
+	log('info', uuid, __line, `sending MRCP event ${evt} ${req_id} ${req_state} ${JSON.stringify(headers)}`)
+	var event = mrcp.builder.build_event(evt, req_id, req_state, headers)
 	u.safe_write(msg.conn, event)
 }
 
 var send_recognition_complete = (uuid, state, result, confidence) => {
-	logger.log('info', uuid, `${u.fn(__filename)} sending event RECOGNITION-COMPLETE ${result}}`)
+    var evt = 'RECOGNITION-COMPLETE'
+    var req_id = state.request_id
+    var req_state = 'COMPLETE'
+	var headers = {'channel-identifier': state.channel_identifier, 'completion-cause': '000 success', 'content-type': 'application/x-nlsml'}
 	var body = `<?xml version="1.0"?>
 <result>
 	<interpretation grammar="${state.session_string}" confidence="${confidence}">
@@ -29,29 +43,39 @@ var send_recognition_complete = (uuid, state, result, confidence) => {
 	</interpretation>
 </result>`
 
-	var event = mrcp.builder.build_event('RECOGNITION-COMPLETE', state.request_id, 'COMPLETE', {'channel-identifier': state.channel_identifier, 'completion-cause': '000 success', 'content-type': 'application/x-nlsml'}, body)
-    logger.log('info', uuid, `sending MRCP event ${event}`)
+    log('info', uuid, __line, `sending MRCP event ${evt} ${req_id} ${req_state} ${JSON.stringify(headers)} ${body.replace(/\n/g, " ")}`)
+
+	var event = mrcp.builder.build_event(evt, req_id, req_state, headers, body)
 	u.safe_write(state.conn, event)
 }
 
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//logger.log('info', 'speechrecoger', `${u.fn(__filename)} got ${JSON.stringify(msg)}`)
-		//logger.log('info', 'speechrecoger', `${u.fn(__filename)} got ${msg.type}`)
+		//log('info', uuid, __line, `got ${JSON.stringify(msg)}`)
+		//log('info', uuid, __line, `got ${msg.type}`)
 		if(msg.type == MT.START) {
 			return state
 		} else if(msg.type == MT.MRCP_MESSAGE) {
             const uuid = msg.data.uuid
-			logger.log('info', uuid, JSON.stringify(msg.data))
+            const req_id = msg.data.request_id
+
+			log('info', uuid, __line, `got MRCP message ${JSON.stringify(msg.data)}`)
+
 			if(msg.data.method == 'DEFINE-GRAMMAR') {
-				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success'})
-                logger.log('info', uuid, `sending MRCP response ${response}`)
+                var rs = 200
+                var rr = 'COMPLETE'
+                var headers = {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success'}
+                log('info', uuid, __line, `sending MRCP response ${req_id} ${rs} ${rr} ${JSON.stringify(headers)}`)
+				var response = mrcp.builder.build_response(req_id, rs, rr, headers)
 				u.safe_write(msg.conn, response)
 			} else if(msg.data.method == 'RECOGNIZE') {
 				if(!(uuid in registrar)) {
-					var response = mrcp.builder.build_response(msg.data.request_id, 405, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
-                    logger.log('info', uuid, `sending MRCP response ${response}`)
+                    var rs = 405
+                    var rr = 'COMPLETE'
+                    var headers = {'channel-identifier': msg.data.headers['channel-identifier']}
+                    log('info', uuid, __line, `sending MRCP response ${req_id} ${rs} ${rr} ${JSON.stringify(headers)}`)
+					var response = mrcp.builder.build_response(req_id, rs, rr, headers)
 					u.safe_write(msg.conn, response)
 					stop_myself(state, ctx)
 					return
@@ -76,15 +100,20 @@ module.exports = (parent, uuid) => spawn(
 
 				dispatch(state.agent, {type: MT.START, data: msg.data})
 
-				logger.log('info', uuid, `${u.fn(__filename)} sending reply 200 IN-PROGRESS`)
-				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'IN-PROGRESS', {'channel-identifier': msg.data.headers['channel-identifier']})
-                logger.log('info', uuid, `sending MRCP response ${response}`)
+                var rs = 200
+                var rr = 'IN-PROGRESS'
+                var headers = {'channel-identifier': msg.data.headers['channel-identifier']}
+                log('info', uuid, __line, `sending MRCP response ${req_id} ${rs} ${rr} ${JSON.stringify(headers)}`)
+				var response = mrcp.builder.build_response(req_id, rs, rr, headers)
 				u.safe_write(state.conn, response)
 
 				send_start_of_input(uuid, msg)
 			} else if(msg.data.method == 'STOP') {
-				var response = mrcp.builder.build_response(msg.data.request_id, 200, 'COMPLETE', {'channel-identifier': msg.data.headers['channel-identifier']})
-                logger.log('info', uuid, `sending MRCP response ${response}`)
+                var rs = 200
+                var rr = 'COMPLETE'
+                var headers = {'channel-identifier': msg.data.headers['channel-identifier']}
+                log('info', uuid, __line, `sending MRCP response ${req_id} ${rs} ${rr} ${JSON.stringify(headers)}`)
+				var response = mrcp.builder.build_response(req_id, rs, rr, headers)
 				u.safe_write(msg.conn, response)
 
 				if(state.agent) {
@@ -120,7 +149,7 @@ module.exports = (parent, uuid) => spawn(
 			}
 			return state
 		} else {
-			logger.log('error', uuid, `${u.fn(__filename)} got unexpected message ${JSON.stringify(msg)}`)
+			log('error', uuid, __line, `got unexpected message ${JSON.stringify(msg)}`)
 			return state
 		}
 	}
