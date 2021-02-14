@@ -5,12 +5,13 @@ const sip = require('sip')
 const uuid_v4 = require('uuid').v4
 const Deque = require('collections/deque')
 const _ = require('lodash')
+const mrcp_utils = require('mrcp-utils')
+const dm = require('data-matching')
 
 const logger = require('../logger.js')
 const u = require('../utils.js')
-const MT = require('../message_types.js')
 
-const dm = require('data-matching')
+const MT = require('../message_types.js')
 
 const registrar = require('../registrar.js')
 
@@ -22,6 +23,7 @@ const log = (line, level, entity, msg) => {
     logger.log(level, entity, `(${FILE}:${line}) ${msg}`)
 }
 
+/*
 const sdp_matcher = dm.partial_match({
 	connection: { ip: dm.collect('remote_rtp_ip') },
 	media: dm.unordered_list([
@@ -58,6 +60,7 @@ var gen_sdp = (local_ip, mrcp_port, rtp_port, connection, uuid, resource) => {
 	`a=${resource == 'speechsynth' ? 'sendonly' : 'recvonly'}\r\n` +
 	'a=mid:1\r\n'
 }
+*/
 
 var rstring = () => {
 	return Math.floor(Math.random()*1e6).toString()
@@ -79,9 +82,9 @@ var process_incoming_call = (uuid, state, req, actor_id) => {
 		sip_req: req,
 	}
 
-	var offer_sdp = u.parse_sdp(req.content)
+	var offer_sdp = mrcp_utils.parse_sdp(req.content)
 
-	if(!sdp_matcher(offer_sdp, data)) {
+	if(!mrcp_utils.offer_sdp_matcher(offer_sdp, data)) {
         var rs = 400
         var rr = 'Invalid SDP For Speech Service'
 		state.sip_stack.send(sip.makeResponse(req, rs, rr))
@@ -298,7 +301,7 @@ module.exports = (parent) => spawn(
         } else if(msg.type == MT.SESSION_CREATED_ACK) { 
             var uuid = msg.data.uuid
 
-            if(!(registrar.hasOwnProperty(uuid)) {
+            if(!registrar.hasOwnProperty(uuid)) {
                 log(__line, 'info', uuid, `not in registrar anymore`)
                 return
             }
@@ -306,7 +309,7 @@ module.exports = (parent) => spawn(
             var data = registrar[uuid]
             var rtp_session = data.rtp_session
 
-            var answer_sdp = gen_sdp(config.local_ip, config.mrcp_port, rtp_session.local_port, data.connection, data.uuid, data.resource)
+            var answer_sdp = mrcp_utils.gen_answer_sdp(config.local_ip, config.mrcp_port, rtp_session.local_port, data.connection, data.uuid, data.resource)
 
             var rs = 200
             var rr = 'OK'
