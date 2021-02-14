@@ -132,6 +132,8 @@ var process_in_dialog_request = (uuid, state, req) => {
 
         var call = registrar[uuid]
 
+        if(!call) return
+
         free_call(state, call, uuid)
 		return
 	}
@@ -156,19 +158,27 @@ function create_sip_stack(state, actor_id) {
                 var rs = 200
                 var rr = 'OK'
                 var res = sip.makeResponse(req, rs, rr)
+				state.sip_stack.send(res)
 
-                if(req.method == 'CANCEL') {
-                    log(__line, 'info', uuid, `Sending ${rs} ${rr} reply`)
-
-                    var call = registrar[uuid]
-
-                    free_call(state, call, uuid)
-                    log(__line, 'info', uuid, `deallocated rtp_session ${call.rtp_session.id}`)
-                } else {
+                if(req.method != 'CANCEL') {
                     log(__line, 'info', uuid, `unexpected out-of-dialog ${req.method}. Sending default ${rs} ${rr} reply`)
+                    return
                 }
 
+                log(__line, 'info', uuid, `Sending ${rs} ${rr} reply`)
+
+                var call = registrar[uuid]
+
+                if(!call) return
+
+                rs = 487
+                rr = 'Request Terminated'
+                res = sip.makeResponse(call.sip_req, rs, rr)
+                log(__line, 'info', uuid, `refused with ${rs} ${rr} due to CANCEL`)
 				state.sip_stack.send(res)
+
+                free_call(state, call, uuid)
+
 				return
 			}
 
@@ -188,8 +198,6 @@ function create_sip_stack(state, actor_id) {
 
 
 function free_call(state, call, uuid) {
-    if(!call) return
-
     dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid, handler: call.handler})
 
     state.free_rtp_sessions.push(call.rtp_session.id)
