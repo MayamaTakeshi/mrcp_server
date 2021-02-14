@@ -132,17 +132,7 @@ var process_in_dialog_request = (uuid, state, req) => {
 
         var call = registrar[uuid]
 
-        if(!call) return
-
-	    dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid, handler: call.handler})
-
-	    log(__line, 'info', uuid, `deallocated rtp_session ${call.rtp_session.id}`)
-
-		state.free_rtp_sessions.push(call.rtp_session.id)
-
-        delete registrar[uuid]
-		log(__line, 'info', uuid, `removed from registrar`)
-
+        free_call(state, call, uuid)
 		return
 	}
 
@@ -172,16 +162,8 @@ function create_sip_stack(state, actor_id) {
 
                     var call = registrar[uuid]
 
-                    if(!call) return
-
-                    dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid, handler: call.handler})
-
+                    free_call(state, call, uuid)
                     log(__line, 'info', uuid, `deallocated rtp_session ${call.rtp_session.id}`)
-
-                    state.free_rtp_sessions.push(call.rtp_session.id)
-
-                    delete registrar[uuid]
-                    log(__line, 'info', uuid, `removed from registrar`)
                 } else {
                     log(__line, 'info', uuid, `unexpected out-of-dialog ${req.method}. Sending default ${rs} ${rr} reply`)
                 }
@@ -202,6 +184,20 @@ function create_sip_stack(state, actor_id) {
 		}
 	})
 	return sip_stack
+}
+
+
+function free_call(state, call, uuid) {
+    if(!call) return
+
+    dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid, handler: call.handler})
+
+    state.free_rtp_sessions.push(call.rtp_session.id)
+
+    log(__line, 'info', uuid, `deallocated rtp_session ${call.rtp_session.id}`)
+
+    delete registrar[uuid]
+    log(__line, 'info', uuid, `removed from registrar`)
 }
 
 
@@ -243,14 +239,7 @@ module.exports = (parent) => spawn(
 					if(now - call.rtp_session.activity_ts > config.rtp_timeout) {
 						log(__line, 'warn', uuid, 'Terminating call due to RTP inactivity')
 
-		                log(__line, 'info', uuid, `deallocated rtp_session ${call.rtp_session.id}`)
-
-						state.free_rtp_sessions.push(call.rtp_session.id)
-
-						dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid, handler: call.handler})
-
-                        delete registrar[uuid]
-		                log(__line, 'info', uuid, `removed from registrar`)
+                        free_call(state, call, uuid)
 
                         if(call.sip_res) {
                             state.sip_stack.send({
