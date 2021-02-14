@@ -166,7 +166,26 @@ function create_sip_stack(state, actor_id) {
                 var rs = 200
                 var rr = 'OK'
                 var res = sip.makeResponse(req, rs, rr)
-                log(__line, 'info', uuid, `unexpected out-of-dialog ${req.method}. Sending default ${rs} ${rr} reply`)
+
+                if(req.method == 'CANCEL') {
+                    log(__line, 'info', uuid, `Sending ${rs} ${rr} reply`)
+
+                    var call = registrar[uuid]
+
+                    if(!call) return
+
+                    dispatch(state.mrcp_server, {type: MT.SESSION_TERMINATED, uuid: uuid, handler: call.handler})
+
+                    log(__line, 'info', uuid, `deallocated rtp_session ${call.rtp_session.id}`)
+
+                    state.free_rtp_sessions.push(call.rtp_session.id)
+
+                    delete registrar[uuid]
+                    log(__line, 'info', uuid, `removed from registrar`)
+                } else {
+                    log(__line, 'info', uuid, `unexpected out-of-dialog ${req.method}. Sending default ${rs} ${rr} reply`)
+                }
+
 				state.sip_stack.send(res)
 				return
 			}
