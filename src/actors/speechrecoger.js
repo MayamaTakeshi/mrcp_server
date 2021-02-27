@@ -133,7 +133,7 @@ module.exports = (parent, uuid) => spawn(
                     state.ready = true
 
                     state.rtp_data_handler = data => {
-                        log(__line, 'debug', uuid, "rtp_session data " + data.length)
+                        //log(__line, 'debug', uuid, "rtp_session data " + data.length)
                         if(state.ready) {
                             var res = state.stream.write(data)
                         }

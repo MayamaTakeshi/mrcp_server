@@ -50,7 +50,7 @@ class MorseSpeechRecogStream extends Writable {
 
         this.mds = new MorseDecodingStream(format, opts)
 
-        this.mds.on("data", data => {
+        this.mds.on('data', data => {
             if(data == '/') {
                 this.acc += " / "
             } else if(data == ' ') {
@@ -66,7 +66,8 @@ class MorseSpeechRecogStream extends Writable {
             var now = new Date()
             var diff = now.getTime() - this.last_char_time.getTime()
             if(this.acc != "" && diff > 1000) {
-                var decoded = morse.decode(this.acc)
+                var decoded = morse.decode(this.acc).trim().toUpperCase()
+                //log(__line, 'info', this.uuid, `Emitting data: now=${now} last_char_time=${this.last_char_time} diff=${diff} acc=${this.acc} decoded=${decoded}`)
                 this.eventEmitter.emit('data', {
                     transcript: decoded,
                     confidence: 50.0,

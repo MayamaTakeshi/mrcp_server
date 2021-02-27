@@ -41,10 +41,13 @@ class MorseSpeechSynthStream extends Readable {
 
         this.toneStream = new ToneStream(format)
 
-        this.toneStream.add([800, 's']) // initial silence
+        //log(__line, 'info', uuid, `text: "${data.body}"`) 
 
-        var signals = morse.encode(data.body).replace(" / ", "/")
-        log(__line, 'info', uuid, `signals=${signals}`) 
+        var signals = morse.encode(data.body )
+        //log(__line, 'info', uuid, `signals before adjustment: "${signals}"`) 
+
+        signals = signals.replace(/ \/ /g, "/")
+        //log(__line, 'info', uuid, `signals after adjustment : "${signals}"`) 
 
         var dot_duration = 400 // ATTENTION: this is in number of samples
         var dash_duration = dot_duration * 3
@@ -53,6 +56,8 @@ class MorseSpeechSynthStream extends Readable {
         var tone = 523.25 // C5
 
         var last_was_dot_or_dash = false
+
+        this.toneStream.add([800, 's']) // initial silence
 
         for(var i=0 ; i<signals.length ; i++) {
             var signal = signals[i]
@@ -73,7 +78,7 @@ class MorseSpeechSynthStream extends Readable {
                 last_was_dot_or_dash = false
                 break
             case '/':
-                this.toneStream.add([dot_duration, 's']) // silence
+                this.toneStream.add([word_space_duration, 's']) // silence
                 last_was_dot_or_dash = false
                 break
             default:
@@ -82,7 +87,7 @@ class MorseSpeechSynthStream extends Readable {
             }
         }
 
-        this.toneStream.add([400, 's'])    // silence
+        this.toneStream.add([word_space_duration, 's'])    // silence
 
         setTimeout(() => {
             this.eventEmitter.emit('ready')

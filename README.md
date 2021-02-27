@@ -4,7 +4,7 @@
 
 This is a Media Resource Control Protocol (v2) server that I'm writing in node.js for learning purposes.
 
-It currently supports Google Speech (or in case you don't have Google Speech service credentials you can try with DTMF and Morse code)
+It currently supports Google Speech (or in case you don't have Google Speech service credentials you can try with languages 'dtmf' and 'morse')
 
 To test things so far:
 
@@ -16,7 +16,7 @@ Start the server:
 
   # if you have a google credentials file with support for SpeechSynth and/or SpeechRecog export:
   export GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/credentials_file.json
-  # if you don't have it, it is OK. You can still test it by using language='dtmf'
+  # if you don't have it, it is OK. You can still test it by using language='dtmf' or language='morse'
 
   cp config/default.js.sample config/default.js
   vim config/default.js # adjust parameters if necessary
@@ -29,7 +29,7 @@ Follow instructions there on how to perform tests and load tests.
 
 ## Development Details
 
-We use the nact actor library to permit to better separate concerns. We have the following actors:
+We use the [nact actor library](https://nact.io/) to permit to better separate concerns. We have the following actors:
   - sip_server : waits for SIP INVITEs with SDP requesting access to speech resources
   - mrcp_server : waits for MRCP messages and distributes them to resource workers
   - speechsynther : resource worker for speechsynth
