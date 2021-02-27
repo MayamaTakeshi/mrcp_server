@@ -4,7 +4,7 @@ const mrcp = require('mrcp')
 
 const fs = require('fs')
 
-const wav = require('wav')
+const xml = require('xml-js')
 
 const logger = require('../logger.js')
 const u = require('../utils.js')
@@ -110,12 +110,40 @@ module.exports = (parent, uuid) => spawn(
 			if(msg.data.method == 'SPEAK') {
 				state.conn = msg.conn
 
+                var content
+                if(msg.data.headers['content-type'] == 'application/ssml+xml') {
+                    try {
+                        content = xml.xml2js(msg.data.body)
+                    } catch (err) {
+    				    log(__line, 'info', uuid, `xml parsing error ${err}`)
+
+                        var cause = '002 parse-failure'
+
+                        send_speak_complete(state, uuid, msg, cause)
+
+                        state.ready = false
+                        return state
+                    }
+                    if(!content.elements || !content.elements[0] || !content.elements[0].type == 'element' || !content.elements[0].name == 'speak') {
+    				    log(__line, 'info', uuid, `Not valid SSML`)
+
+                        var cause = '002 parse-failure'
+
+                        send_speak_complete(state, uuid, msg, cause)
+
+                        state.ready = false
+                        return state
+                    }
+                } else {
+                    content = msg.data.body
+                }
+
                 var language = msg.data.headers['speech-language']
 
 				if(language == 'dtmf') {
 					state.stream = new DtmfSpeechSynthStream(uuid, msg.data)
                 } else if(language == 'morse') {
-					state.stream = new MorseSpeechSynthStream(uuid, msg.data)
+					state.stream = new MorseSpeechSynthStream(uuid, msg.data, content)
 				} else {
 					state.stream = new GoogleSpeechSynthStream(uuid, msg.data)
 				}
@@ -135,6 +163,7 @@ module.exports = (parent, uuid) => spawn(
 
                     var cause = '004 error'
 
+                    console.log(err)
                     if(err.startsWith("parse-failure")) {
                         cause = '002 parse-failure'
                     }
