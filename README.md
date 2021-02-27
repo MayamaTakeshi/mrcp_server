@@ -2,9 +2,9 @@
 
 ## Overview
 
-This is an experimental Media Resource Control Protocol server that I'm writing in node.js for learning purposes.
+This is a Media Resource Control Protocol (v2) server that I'm writing in node.js for learning purposes.
 
-Initial media platform will be Google Voice.
+It currently supports Google Speech (or in case you don't have Google Speech service credentials you can try with DTMF and Morse code)
 
 To test things so far:
 
