@@ -12,8 +12,8 @@ const MT = require('../message_types.js')
 
 const config = require('config')
 
-const dgs = require('../dtmf_generation_stream.js')
-const ggs = require('../gss_generation_stream.js')
+const DtmfSpeechSynthStream = require('../dtmf_speech_synth_stream.js')
+const GoogleSpeechSynthStream = require('../google_speech_synth_stream.js')
 
 const registrar = require('../registrar.js')
 
@@ -110,9 +110,9 @@ module.exports = (parent, uuid) => spawn(
 				state.conn = msg.conn
 
 				if(msg.data.headers['speech-language'] == 'dtmf') {
-					state.stream = new dgs(uuid, msg.data)
+					state.stream = new DtmfSpeechSynthStream(uuid, msg.data)
 				} else {
-					state.stream = new ggs(uuid, msg.data)
+					state.stream = new GoogleSpeechSynthStream(uuid, msg.data)
 				}
 
                 state.stream.on('ready', () => {

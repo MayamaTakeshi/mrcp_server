@@ -10,13 +10,31 @@ const config = require('config')
 
 const registrar = require('../registrar.js')
 
-const google_sr_agent = require('./google_sr_agent.js')
-const dtmf_sr_agent = require('./dtmf_sr_agent.js')
+const DtmfSpeechRecogStream = require('../dtmf_speech_recog_stream.js')
+const GoogleSpeechRecogStream = require('../google_speech_recog_stream.js')
 
 const FILE = u.filename()
 
-const log = (level, entity, line, msg) => {
+const log = (line, level,entity, msg) => {
     logger.log(level, entity, `(${FILE}:${line}) ${msg}`)
+}
+
+const stop_myself = (state, ctx) => {
+    log(__line, 'info', state.uuid, 'stop_myself')
+
+    if(state.stream) state.stream.close()
+    state.ready = false
+
+    stop(ctx.self)
+}
+
+const send_in_progress = (uuid, req_id, msg) => {
+    var rs = 200
+    var rr = 'IN-PROGRESS'
+    var headers = {'channel-identifier': msg.data.headers['channel-identifier']}
+    log(__line, 'info', uuid, `sending MRCP response ${req_id} ${rs} ${rr} ${JSON.stringify(headers)}`)
+    var response = mrcp.builder.build_response(req_id, rs, rr, headers)
+    u.safe_write(msg.conn, response)
 }
 
 var send_start_of_input = (uuid, msg) => {
@@ -25,9 +43,18 @@ var send_start_of_input = (uuid, msg) => {
     var req_state = 'IN-PROGRESS'
     var headers = {'channel-identifier': msg.data.headers['channel-identifier'], 'input-type': 'speech'}
 
-	log('info', uuid, __line, `sending MRCP event ${evt} ${req_id} ${req_state} ${JSON.stringify(headers)}`)
+	log(__line, 'info', uuid, `sending MRCP event ${evt} ${req_id} ${req_state} ${JSON.stringify(headers)}`)
 	var event = mrcp.builder.build_event(evt, req_id, req_state, headers)
 	u.safe_write(msg.conn, event)
+}
+
+var send_stop_reply = (uuid, msg) => {
+    var rs = 200
+    var rr = 'COMPLETE'
+    var headers = {'channel-identifier': msg.data.headers['channel-identifier']}
+    log(__line, 'info', uuid, `sending MRCP response ${req_id} ${rs} ${rr} ${JSON.stringify(headers)}`)
+    var response = mrcp.builder.build_response(req_id, rs, rr, headers)
+    u.safe_write(msg.conn, response)
 }
 
 var send_recognition_complete = (uuid, state, result, confidence) => {
@@ -43,7 +70,7 @@ var send_recognition_complete = (uuid, state, result, confidence) => {
 	</interpretation>
 </result>`
 
-    log('info', uuid, __line, `sending MRCP event ${evt} ${req_id} ${req_state} ${JSON.stringify(headers)} ${body.replace(/\n/g, " ")}`)
+    log(__line, 'info', uuid, `sending MRCP event ${evt} ${req_id} ${req_state} ${JSON.stringify(headers)} ${body.replace(/\n/g, " ")}`)
 
 	var event = mrcp.builder.build_event(evt, req_id, req_state, headers, body)
 	u.safe_write(state.conn, event)
@@ -52,21 +79,21 @@ var send_recognition_complete = (uuid, state, result, confidence) => {
 module.exports = (parent, uuid) => spawn(
 	parent,
 	(state = {}, msg, ctx) => {
-		//log('info', uuid, __line, `got ${JSON.stringify(msg)}`)
-		//log('info', uuid, __line, `got ${msg.type}`)
+		//log(__line, 'info', uuid, `got ${JSON.stringify(msg)}`)
+		//log(__line, 'info', uuid, `got ${msg.type}`)
 		if(msg.type == MT.START) {
 			return state
 		} else if(msg.type == MT.MRCP_MESSAGE) {
             const uuid = msg.data.uuid
             const req_id = msg.data.request_id
 
-			log('info', uuid, __line, `got MRCP message ${JSON.stringify(msg.data)}`)
+			log(__line, 'info', uuid, `got MRCP message ${JSON.stringify(msg.data)}`)
 
 			if(msg.data.method == 'DEFINE-GRAMMAR') {
                 var rs = 200
                 var rr = 'COMPLETE'
                 var headers = {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success'}
-                log('info', uuid, __line, `sending MRCP response ${req_id} ${rs} ${rr} ${JSON.stringify(headers)}`)
+                log(__line, 'info', uuid, `sending MRCP response ${req_id} ${rs} ${rr} ${JSON.stringify(headers)}`)
 				var response = mrcp.builder.build_response(req_id, rs, rr, headers)
 				u.safe_write(msg.conn, response)
 			} else if(msg.data.method == 'RECOGNIZE') {
@@ -74,7 +101,7 @@ module.exports = (parent, uuid) => spawn(
                     var rs = 405
                     var rr = 'COMPLETE'
                     var headers = {'channel-identifier': msg.data.headers['channel-identifier']}
-                    log('info', uuid, __line, `sending MRCP response ${req_id} ${rs} ${rr} ${JSON.stringify(headers)}`)
+                    log(__line, 'info', uuid, `sending MRCP response ${req_id} ${rs} ${rr} ${JSON.stringify(headers)}`)
 					var response = mrcp.builder.build_response(req_id, rs, rr, headers)
 					u.safe_write(msg.conn, response)
 					stop_myself(state, ctx)
@@ -88,68 +115,47 @@ module.exports = (parent, uuid) => spawn(
 				state.request_id = msg.data.request_id
 				state.conn = msg.conn
 
-				if(state.agent) {
-					dispatch(state.agent, {type: MT.TERMINATE})
-				}
+				var language = msg.data.headers['speech-language']
 
-				if(msg.data.headers['speech-language'] == 'dtmf') {
-					state.agent = dtmf_sr_agent(ctx.self, uuid)
+				if(language == 'dtmf') {
+					state.stream = new DtmfSpeechRecogStream(uuid, language)
 				} else {
-					state.agent = google_sr_agent(ctx.self, uuid)
+				    state.stream = new GoogleSpeechRecogStream(uuid, language)
 				}
 
-				dispatch(state.agent, {type: MT.START, data: msg.data})
+                state.stream.on('ready', () => {
+                    send_in_progress(uuid, req_id, msg)
+				    send_start_of_input(uuid, msg)
 
-                var rs = 200
-                var rr = 'IN-PROGRESS'
-                var headers = {'channel-identifier': msg.data.headers['channel-identifier']}
-                log('info', uuid, __line, `sending MRCP response ${req_id} ${rs} ${rr} ${JSON.stringify(headers)}`)
-				var response = mrcp.builder.build_response(req_id, rs, rr, headers)
-				u.safe_write(state.conn, response)
+                    state.ready = true
 
-				send_start_of_input(uuid, msg)
+                    state.rtp_data_handler = data => {
+                        log(__line, 'debug', uuid, "rtp_session data " + data.length)
+                        if(state.ready) {
+                            var res = state.stream.write(data)
+                        }
+                    }
+
+                    registrar[uuid].rtp_session.on('data', state.rtp_data_handler)
+                })
+
+                state.stream.on('data', data => {
+                    send_recognition_complete(uuid, state, data.transcript, data.confidence)
+                    state.stream.end()
+                    state.stream = null
+                    state.ready = false
+                })
 			} else if(msg.data.method == 'STOP') {
-                var rs = 200
-                var rr = 'COMPLETE'
-                var headers = {'channel-identifier': msg.data.headers['channel-identifier']}
-                log('info', uuid, __line, `sending MRCP response ${req_id} ${rs} ${rr} ${JSON.stringify(headers)}`)
-				var response = mrcp.builder.build_response(req_id, rs, rr, headers)
-				u.safe_write(msg.conn, response)
+                send_stop_reply(uuid, msg)
 
-				if(state.agent) {
-					dispatch(state.agent, {type: MT.TERMINATE})
-				}
-				state.agent = null
-
-				stop(ctx.self)
+				stop_myself(state, ctx)
 			}
 			return state
 		} else if(msg.type == MT.TERMINATE) {
-			if(state.agent) {
-				dispatch(state.agent, {type: MT.TERMINATE})
-			}
-			state.agent = null
-
-			stop(ctx.self)
-			return
-		} else if(msg.type == MT.RECOGNITION_COMPLETED) {
-			send_recognition_complete(uuid, state, msg.data.transcript, msg.data.confidence)
-			state.recognition_ongoing = false
-			if(state.recognizeStream) {
-				state.recognizeStream.end()
-				state.recognizeStream = null
-			}
-			return state
-		} else if(msg.type == MT.RECOGNITION_COMPLETED_WITH_ERROR) {
-			send_recognition_complete(uuid, state, msg.data.transcript, msg.data.confidence)
-			state.recognition_ongoing = false
-			if(state.recognizeStream) {
-				state.recognizeStream.end()
-				state.recognizeStream = null
-			}
+			stop_myself(state, ctx)
 			return state
 		} else {
-			log('error', uuid, __line, `got unexpected message ${JSON.stringify(msg)}`)
+			log(__line, 'error', uuid, `got unexpected message ${JSON.stringify(msg)}`)
 			return state
 		}
 	}

@@ -9,6 +9,7 @@ const mrcp_utils = require('mrcp-utils')
 
 const logger = require('../logger.js')
 const u = require('../utils.js')
+const rtp_utils = require('../rtp_utils.js')
 
 const MT = require('../message_types.js')
 
@@ -204,6 +205,7 @@ function free_call(state, call, uuid) {
 
     log(__line, 'info', uuid, `deallocated rtp_session ${call.rtp_session.id}`)
 
+    registrar[uuid].rtp_session.remove_all_listeners()
     delete registrar[uuid]
     log(__line, 'info', uuid, `removed from registrar`)
 }
@@ -225,7 +227,7 @@ module.exports = (parent) => spawn(
                 state.free_rtp_sessions.push(i)
             }
 
-            u.alloc_rtp_sessions(udp_ports, config.local_ip)
+            rtp_utils.alloc_rtp_sessions(udp_ports, config.local_ip)
             .then(rtp_sessions => {
 				dispatch(ctx.self, {type: MT.PROCEED, data: {rtp_sessions: rtp_sessions}})
             })

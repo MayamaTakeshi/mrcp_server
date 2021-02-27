@@ -15,7 +15,7 @@ const log = (line, level, entity, msg) => {
     logger.log(level, entity, `(${FILE}:${line}) ${msg}`)
 }
 
-class DtmfGenerationStream extends Readable {
+class DtmfSpeechSynthStream extends Readable {
     constructor(uuid, data) {
         super()
 
@@ -94,4 +94,4 @@ class DtmfGenerationStream extends Readable {
     }
 }
 
-module.exports = DtmfGenerationStream
+module.exports = DtmfSpeechSynthStream

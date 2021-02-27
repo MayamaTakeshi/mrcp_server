@@ -1,5 +1,8 @@
 const dgram = require("dgram")
 
+const u = require('./utils.js')
+console.dir(u)
+
 class RtpSession {
 	constructor(socket, id) {
         this._socket = socket
@@ -17,8 +20,21 @@ class RtpSession {
 
 			// TODO: must check if message is really an RTP packet
 
+            // We will convert to Linear16 so that when we add support for other codecs in the sip_server, the writable streams will not need to change
+
 			var data = msg.slice(12) // assume 12 bytes header for now
-			this._socket.emit('data', data) 
+
+            var buf = Buffer.alloc(data.length * 2)
+
+            for(var i=0 ; i<data.length ; i++) {
+                // convert ulaw to L16 little-endian
+                var l = u.ulaw2linear(data[i])
+                buf[i*2] = l & 0xFF
+                buf[i*2+1] = l >>> 8
+            }
+
+			this._socket.emit('data', buf) 
+
 			this.activity_ts = Date.now()
 		})
     }
@@ -77,6 +93,10 @@ class RtpSession {
 
 		this.activity_ts = Date.now()
 	}
+
+    remove_all_listeners() {
+        this._socket.removeAllListeners() 
+    }
 
 	close() {
 		this._socket.close()
