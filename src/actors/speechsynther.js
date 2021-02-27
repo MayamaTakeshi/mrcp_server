@@ -13,6 +13,7 @@ const MT = require('../message_types.js')
 const config = require('config')
 
 const DtmfSpeechSynthStream = require('../dtmf_speech_synth_stream.js')
+const MorseSpeechSynthStream = require('../morse_speech_synth_stream.js')
 const GoogleSpeechSynthStream = require('../google_speech_synth_stream.js')
 
 const registrar = require('../registrar.js')
@@ -109,8 +110,12 @@ module.exports = (parent, uuid) => spawn(
 			if(msg.data.method == 'SPEAK') {
 				state.conn = msg.conn
 
-				if(msg.data.headers['speech-language'] == 'dtmf') {
+                var language = msg.data.headers['speech-language']
+
+				if(language == 'dtmf') {
 					state.stream = new DtmfSpeechSynthStream(uuid, msg.data)
+                } else if(language == 'morse') {
+					state.stream = new MorseSpeechSynthStream(uuid, msg.data)
 				} else {
 					state.stream = new GoogleSpeechSynthStream(uuid, msg.data)
 				}

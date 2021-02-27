@@ -19,6 +19,7 @@
     "magic-globals": "^0.9.1",
     "minimist": "^1.2.5",
     "moment": "^2.24.0",
+    "morse-node": "^0.1.1",
     "mrcp": "^1.3.4",
     "mrcp-utils": "^1.0.1",
     "nact": "^7.2.2",
