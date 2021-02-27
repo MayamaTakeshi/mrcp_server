@@ -115,17 +115,10 @@ class GssGenerationStream extends Readable {
     }
 
     _read(size) {
-        console.log(`gss_generation_stream.read(${size})`)
-        // we ignore size and always process it as 320 (we could set it as a parameter in the constructor). This is OK:
-        // The _read function will also get a provisional size parameter as its first argument that specifies how many bytes the consumer wants to read, but your readable stream can ignore the size if it wants.
-        // Ref: https://github.com/substack/stream-handbook
+        var buf = Buffer.alloc(size)
+        var buf2 = Buffer.alloc(size/2)
 
-        var n = 320
-
-        var buf = Buffer.alloc(n)
-        var buf2 = Buffer.alloc(n/2)
-
-        fs.read(this.fd, buf, 0, n, null, (err, len) => {
+        fs.read(this.fd, buf, 0, size, null, (err, len) => {
             if(err) {
                 var err_msg = `reading ${msg.path} failed with ${err}`
                 log(__line, 'error', this.uuid, err_msg)
@@ -140,12 +133,12 @@ class GssGenerationStream extends Readable {
                 return
             }
 
-            for(var i=0 ; i<n/2 ; i++) {
+            for(var i=0 ; i<size/2 ; i++) {
                 // L16 little-endian
                 buf2[i] = u.linear2ulaw((buf[i*2+1] << 8) + buf[i*2])
             }
 
-            console.log(`gss_generation_stream.read(${size}) pushing ${buf2.length}`)
+            //console.log(`gss_generation_stream.read(${size}) pushing ${buf2.length}`)
             this.push(buf2)
         })
     }

@@ -62,10 +62,13 @@ class DtmfGenerationStream extends Readable {
     }
 
     _read(size) {
-        console.log(`dtmf_generation_stream.read(${size})`)
+        //console.log(`dtmf_generation_stream.read(${size})`)
         // we ignore size and always process it as 320 (we could set it as a parameter in the constructor). This is OK:
         // The _read function will also get a provisional size parameter as its first argument that specifies how many bytes the consumer wants to read, but your readable stream can ignore the size if it wants.
         // Ref: https://github.com/substack/stream-handbook
+        // However, this is actually not necessary. See: gss_generation_stream.js.
+        // We are doing this as a workaround as it seems if we get size=16384 and call this.toneStream(size) we get null.
+        // This is probably a bug in tone-stream so we will solve it this way till correction
 
         var n = 320
 
@@ -86,7 +89,7 @@ class DtmfGenerationStream extends Readable {
             buf2[i] = u.linear2ulaw((buf[i*2+1] << 8) + buf[i*2])
         }
 
-        console.log(`dtmf_generation_stream.read(${size}) pushing ${buf2.length}`)
+        //console.log(`dtmf_generation_stream.read(${size}) pushing ${buf2.length}`)
         this.push(buf2)
     }
 }

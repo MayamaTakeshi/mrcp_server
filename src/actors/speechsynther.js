@@ -73,7 +73,6 @@ const send_stop_reply = (uuid, req_id, msg) => {
 
 const startRtpTimer = (state, uuid) => {
     state.timer_id = setInterval(() => {
-        log(__line, 'info', uuid, 'rtpTimer')
         if(state.aborted) {
             log(__line, 'info', uuid, `rtpTimer state.aborted=${state.aborted}`)
             return
@@ -91,7 +90,7 @@ const startRtpTimer = (state, uuid) => {
         }
 
         registrar[uuid].rtp_session.send_payload(buf)
-        log(__line, 'info', uuid, `rtpTimer sent buf=${buf.length}`)
+        //log(__line, 'info', uuid, `rtpTimer sent buf=${buf.length}`)
     }, 19) // ptime=20ms (so we will use 19ms to minimize lag)
 }
 
