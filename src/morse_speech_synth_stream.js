@@ -46,7 +46,7 @@ class MorseSpeechSynthStream extends Readable {
         var signals = morse.encode(data.body).replace(" / ", "/")
         log(__line, 'info', uuid, `signals=${signals}`) 
 
-        var dot_duration = 400
+        var dot_duration = 400 // ATTENTION: this is in number of samples
         var dash_duration = dot_duration * 3
         var word_space_duration = dot_duration * 7
 

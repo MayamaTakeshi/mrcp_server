@@ -11,6 +11,7 @@ const config = require('config')
 const registrar = require('../registrar.js')
 
 const DtmfSpeechRecogStream = require('../dtmf_speech_recog_stream.js')
+const MorseSpeechRecogStream = require('../morse_speech_recog_stream.js')
 const GoogleSpeechRecogStream = require('../google_speech_recog_stream.js')
 
 const FILE = u.filename()
@@ -119,6 +120,8 @@ module.exports = (parent, uuid) => spawn(
 
 				if(language == 'dtmf') {
 					state.stream = new DtmfSpeechRecogStream(uuid, language)
+				} else if(language == 'morse') {
+					state.stream = new MorseSpeechRecogStream(uuid, language)
 				} else {
 				    state.stream = new GoogleSpeechRecogStream(uuid, language)
 				}

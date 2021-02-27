@@ -83,7 +83,10 @@ class DtmfSpeechRecogStream extends Writable {
     _final(callback) {
         log(__line, 'info', this.uuid, '_final')
 
-        // For this stream, nothing needs to be done
+        if(this.timer_id) {
+            clearInterval(this.timer_id)
+            this.timer_id = null
+        }
 
         callback()
 
