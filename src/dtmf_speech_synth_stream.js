@@ -3,7 +3,7 @@ require('magic-globals')
 const logger = require('./logger.js')
 const u = require('./utils.js')
 
-const ToneStream = require('tone-stream')
+const { ToneStream, utils} = require('tone-stream')
 
 const { Readable } = require('stream')
 
@@ -15,8 +15,12 @@ const log = (line, level, entity, msg) => {
     logger.log(level, entity, `(${FILE}:${line}) ${msg}`)
 }
 
+const SAMPLE_RATE = 8000
+
+const DEFAULT_DIGIT_DURATION = "50ms"
+
 class DtmfSpeechSynthStream extends Readable {
-    constructor(uuid, data) {
+    constructor(uuid, data, elements) {
         super()
 
         this.uuid = uuid
@@ -24,35 +28,83 @@ class DtmfSpeechSynthStream extends Readable {
         this.eventEmitter = new EventEmitter()
 
         var digits = data.body
-
-        if(digits.match(/[^0-9a-fA-F\*\#]/)) {
-            setTimeout(() => {
-                this.eventEmitter.emit('error', `parse-failure: invalid DTMF sequence '${digits}'`)
-            }, 0)
-
-            return
-        }
             
         const format = {
-            sampleRate: 8000,
+            sampleRate: SAMPLE_RATE,
             bitDepth: 16,
             channels: 1,
         }
 
         this.toneStream = new ToneStream(format)
 
-        this.toneStream.add([800, 's'])    // silence
-
-        for(var i=0 ; i<digits.length ; i++) {
-            this.toneStream.add([400, 's'])    // silence
-            this.toneStream.add([800, 'DTMF:' + digits.charAt(i)]) 
+        if(typeof elements === 'string') {
+            elements = [
+                {
+                    "type": "text",
+                    "text": elements,
+                },
+            ]
         }
 
-        this.toneStream.add([400, 's'])    // silence
-
+        try {
+            this.toneStream.add([800, 's']) // initial silence
+            this.process_elements(elements)
+            this.toneStream.add([800, 's']) // final silence
+        } catch (err) {
+            setTimeout(() => {
+                this.eventEmitter.emit('error', err)
+            }, 0)
+            return
+        }
+        
         setTimeout(() => {
             this.eventEmitter.emit('ready')
         }, 0) 
+    }
+
+    parse_duration(duration) {
+        if(duration.endsWith("ms")) {
+            return parseInt(duration) 
+        } else if(duration.endsWith("s")) {
+            return parseInt(duration) * 1000
+        } else {
+            throw `parse-failure: invalid duration ${duration}`
+        }
+    }
+    
+    push_silence(duration) {
+        var milliseconds = this.parse_duration(duration)
+        var samples = Math.round(SAMPLE_RATE / 1000 * milliseconds)
+        this.toneStream.add([samples, 's'])
+    }
+
+    push_digits(digits, duration) {
+        var milliseconds = this.parse_duration(duration)
+
+        if(digits.match(/[^0-9a-fA-F\*\#]/)) {
+            throw `parse-failure: invalid DTMF sequence '${digits}'`
+        }
+
+        this.toneStream.concat(utils.gen_dtmf_tones(digits, milliseconds, milliseconds, SAMPLE_RATE))
+    }
+
+    process_elements(elements) {
+        var res
+        for(var i=0 ; i<elements.length ; i++) {
+            var e = elements[i]
+            if(e.type == 'text') {
+                this.push_digits(e.text, DEFAULT_DIGIT_DURATION)
+            } else if(e.type == 'element' && e.name == 'prosody'
+                  && e.attributes.rate
+                  && e.elements && e.elements[0] && e.elements[0].type == 'text') {
+                this.push_digits(e.elements[0].text, e.attributes.rate)
+            } else if(e.type == 'element' && e.name == 'break'
+                  && typeof e.attributes.time == 'string') {
+                this.push_silence(e.attributes.time)
+            } else {
+                throw(`parse-failure: invalid SSML element ${JSON.stringify(e)}`)
+            }
+        }
     }
 
     on(evt, cb) {

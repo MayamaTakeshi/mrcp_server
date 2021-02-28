@@ -134,6 +134,7 @@ module.exports = (parent, uuid) => spawn(
                         state.ready = false
                         return state
                     }
+                    content = content.elements[0].elements
                 } else {
                     content = msg.data.body
                 }
@@ -141,7 +142,7 @@ module.exports = (parent, uuid) => spawn(
                 var language = msg.data.headers['speech-language']
 
 				if(language == 'dtmf') {
-					state.stream = new DtmfSpeechSynthStream(uuid, msg.data)
+					state.stream = new DtmfSpeechSynthStream(uuid, msg.data, content)
                 } else if(language == 'morse') {
 					state.stream = new MorseSpeechSynthStream(uuid, msg.data, content)
 				} else {
@@ -164,7 +165,7 @@ module.exports = (parent, uuid) => spawn(
                     var cause = '004 error'
 
                     console.log(err)
-                    if(err.startsWith("parse-failure")) {
+                    if(typeof err == 'string' && err.startsWith("parse-failure")) {
                         cause = '002 parse-failure'
                     }
 

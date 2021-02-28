@@ -3,13 +3,11 @@ require('magic-globals')
 const logger = require('./logger.js')
 const u = require('./utils.js')
 
-const ToneStream = require('tone-stream')
+const { ToneStream, utils } = require('tone-stream')
 
 const { Readable } = require('stream')
 
 const { EventEmitter } = require('events')
-
-const morse = require('morse-node').create("ITU")
 
 const FILE = u.filename()
 
@@ -17,7 +15,7 @@ const log = (line, level, entity, msg) => {
     logger.log(level, entity, `(${FILE}:${line}) ${msg}`)
 }
 
-const DEFAULT_WPM = 70
+const DEFAULT_WPM = "70wpm"
 
 const SAMPLE_RATE = 8000
 
@@ -30,10 +28,20 @@ const wpm2rate = (wpm, sampleRate) => {
 }
 
 class MorseSpeechSynthStream extends Readable {
-    constructor(uuid, data, content) {
+    constructor(uuid, data, elements) {
         super()
 
         this.uuid = uuid
+
+        this.freq = 'C5'
+        if(data.headers['voice-name']) {
+            var temp = data.headers['voice-name']
+            if(temp.endsWith("hz")) {
+                this.freq = parseInt(temp) 
+            } else {
+                this.freq = temp
+            }
+        }
 
         this.eventEmitter = new EventEmitter()
 
@@ -45,27 +53,18 @@ class MorseSpeechSynthStream extends Readable {
  
         this.toneStream = new ToneStream(format)
 
-        if(typeof content === 'string') {
-            content = {
-                "elements": [
-                    {
-                        "type": "element",
-                        "name": "speak",
-                        "elements": [
-                            {
-                                "type": "text",
-                                "text": content
-                            },
-                        ],
-                    },
-                
-                ],
-            }
+        if(typeof elements === 'string') {
+            elements = [
+                {
+                    "type": "text",
+                    "text": elements,
+                },
+            ]
         }
 
         try {
             this.toneStream.add([800, 's']) // initial silence
-            this.process_content(content)
+            this.process_elements(elements)
             this.toneStream.add([800, 's']) // final silence
         } catch (err) {
             setTimeout(() => {
@@ -79,62 +78,32 @@ class MorseSpeechSynthStream extends Readable {
         }, 0) 
     }
 
+    parse_duration(duration) {
+        if(duration.endsWith("ms")) {
+            return parseInt(duration) 
+        } else if(duration.endsWith("s")) {
+            return parseInt(duration) * 1000
+        } else {
+            throw `parse-failure: invalid duration ${duration}. Must end with either 's' or 'ms'`
+        }
+    }
+
     push_chars(text, wpm) {
-        if(!morse.isValid(text, 'chars')) {
-            throw `parse-failure: invalid chars`
+        if(!wpm.endsWith("wpm")) {
+            throw `parse-failure: invalid rate ${wpm}. Must end with 'wpm'`
         }
-            
-        var signals = morse.encode(text)
-        //log(__line, 'info', uuid, `signals before adjustment: "${signals}"`) 
-
-        signals = signals.replace(/ \/ /g, "/")
-        //log(__line, 'info', uuid, `signals after adjustment : "${signals}"`) 
-
-        var dot_duration = Math.round(wpm2rate(wpm, SAMPLE_RATE))
-        var dash_duration = dot_duration * 3
-        var word_space_duration = dot_duration * 7
-
-        var tone = 523.25 // C5
-
-        var last_was_dot_or_dash = false
-
-        for(var i=0 ; i<signals.length ; i++) {
-            var signal = signals[i]
-            if(last_was_dot_or_dash && (signal == '.'|| signal == '-')) {
-                this.toneStream.add([dot_duration, 's']) // silence
-            }
-            switch(signal) {
-            case '.':
-                this.toneStream.add([dot_duration, tone])
-                last_was_dot_or_dash = true
-                break
-            case '-':
-                this.toneStream.add([dash_duration, tone])
-                last_was_dot_or_dash = true
-                break
-            case ' ':
-                this.toneStream.add([dash_duration, 's']) // silence
-                last_was_dot_or_dash = false
-                break
-            case '/':
-                this.toneStream.add([word_space_duration, 's']) // silence
-                last_was_dot_or_dash = false
-                break
-            default:
-                log(__line, 'error', uuid, "Unexpected " + signal)
-                process.exit(1)
-            }
-        }
+        wpm = parseInt(wpm)
+        var tones = utils.gen_morse_tones(text, this.freq, wpm, SAMPLE_RATE)
+        this.toneStream.concat(tones)
     }
 
-    push_silence(time, rate) {
-        var seconds = parseInt(time)         
-        var samples = rate * seconds
-        this.toneStream.add([rate, 's'])
+    push_silence(duration) {
+        var milliseconds = this.parse_duration(duration)
+        var samples = Math.round(SAMPLE_RATE / 1000 * milliseconds)
+        this.toneStream.add([samples, 's'])
     }
 
-    process_content(content) {
-        var elements = content.elements[0].elements
+    process_elements(elements) {
         var res
         for(var i=0 ; i<elements.length ; i++) {
             var e = elements[i]
@@ -143,10 +112,10 @@ class MorseSpeechSynthStream extends Readable {
             } else if(e.type == 'element' && e.name == 'prosody'
                   && e.attributes.rate
                   && e.elements && e.elements[0] && e.elements[0].type == 'text') {
-                this.push_chars(e.elements[0].text, parseInt(e.attributes.rate))
+                this.push_chars(e.elements[0].text, e.attributes.rate)
             } else if(e.type == 'element' && e.name == 'break'
                   && typeof e.attributes.time == 'string') {
-                this.push_silence(e.attributes.time, SAMPLE_RATE)
+                this.push_silence(e.attributes.time)
             } else {
                 throw(`parse-failure: invalid SSML element ${JSON.stringify(e)}`)
             }
