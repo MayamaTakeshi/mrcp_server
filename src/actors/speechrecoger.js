@@ -23,7 +23,7 @@ const log = (line, level,entity, msg) => {
 const stop_myself = (state, ctx) => {
     log(__line, 'info', state.uuid, 'stop_myself')
 
-    if(state.stream) state.stream.close()
+    if(state.stream) state.stream.end()
     state.ready = false
 
     stop(ctx.self)
