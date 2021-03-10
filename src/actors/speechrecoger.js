@@ -49,7 +49,7 @@ var send_start_of_input = (uuid, msg) => {
 	u.safe_write(msg.conn, event)
 }
 
-var send_stop_reply = (uuid, msg) => {
+var send_stop_reply = (req_id, uuid, msg) => {
     var rs = 200
     var rr = 'COMPLETE'
     var headers = {'channel-identifier': msg.data.headers['channel-identifier']}
@@ -149,7 +149,7 @@ module.exports = (parent, uuid) => spawn(
                     state.ready = false
                 })
 			} else if(msg.data.method == 'STOP') {
-                send_stop_reply(uuid, msg)
+                send_stop_reply(req_id, uuid, msg)
 
 				stop_myself(state, ctx)
 			}

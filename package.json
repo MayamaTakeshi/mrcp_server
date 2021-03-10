@@ -6,6 +6,7 @@
   "scripts": {
     "test": "./node_modules/jest/bin/jest.js tests/unit"
   },
+  "engines": {"node": "v12.19.0"},
   "author": "MayamaTakeshi",
   "repository": "https://MayamaTakeshi@github.com/MayamaTakeshi/mrcp_server",
   "license": "ISC",
