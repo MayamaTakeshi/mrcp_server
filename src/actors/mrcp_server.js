@@ -81,7 +81,7 @@ module.exports = (parent) => spawn(
 				handler = speechrecoger(ctx.self, msg.data.uuid)
 			}
 
-			log(__line, 'error', msg.data.uuid, `setting handler for ${msg.data.resource}`)
+			log(__line, 'info', msg.data.uuid, `setting handler for ${msg.data.resource}`)
 
 			registrar[msg.data.uuid].handler = handler
 			dispatch(handler, {type: MT.START, data: msg.data})
