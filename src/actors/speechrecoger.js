@@ -24,6 +24,7 @@ const stop_myself = (state, ctx) => {
     log(__line, 'info', state.uuid, 'stop_myself')
 
     if(state.stream) state.stream.end()
+    state.stream = null
     state.ready = false
 
     stop(ctx.self)
@@ -146,6 +147,8 @@ module.exports = (parent, uuid) => spawn(
                 })
 
                 state.stream.on('data', data => {
+                    if(!state.ready) return
+
                     send_recognition_complete(uuid, state, data.transcript, data.confidence)
                     state.stream.end()
                     state.stream = null
