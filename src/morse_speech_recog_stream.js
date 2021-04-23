@@ -51,6 +51,10 @@ class MorseSpeechRecogStream extends Writable {
         this.mds = new MorseDecodingStream(format, opts)
 
         this.mds.on('data', data => {
+            if(this.acc == '') {
+                this.eventEmitter.emit('start_of_input')
+            }
+
             if(data == '/') {
                 this.acc += " / "
             } else if(data == ' ') {

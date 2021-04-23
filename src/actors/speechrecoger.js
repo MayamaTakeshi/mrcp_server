@@ -128,7 +128,6 @@ module.exports = (parent, uuid) => spawn(
 
                 state.stream.on('ready', () => {
                     send_in_progress(uuid, req_id, msg)
-				    send_start_of_input(uuid, msg)
 
                     state.ready = true
 
@@ -140,6 +139,10 @@ module.exports = (parent, uuid) => spawn(
                     }
 
                     registrar[uuid].rtp_session.on('data', state.rtp_data_handler)
+                })
+
+                state.stream.on('start_of_input', () => {
+				    send_start_of_input(uuid, msg)
                 })
 
                 state.stream.on('data', data => {

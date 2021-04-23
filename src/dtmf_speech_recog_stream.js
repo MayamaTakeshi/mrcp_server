@@ -43,6 +43,9 @@ class DtmfSpeechRecogStream extends Writable {
         this.digits = ""
 
         this.dds.on('digit', digit => {
+            if(this.digits == "") {
+                this.eventEmitter.emit('start_of_input')
+            }
             this.digits += digit
             this.last_digit_time = new Date()
         })
