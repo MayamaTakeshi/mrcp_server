@@ -27,7 +27,7 @@
     "mrcp": "^1.3.4",
     "mrcp-utils": "^1.1.1",
     "nact": "^7.2.2",
-    "sip": "0.0.6",
+    "sip": "git+https://github.com/MayamaTakeshi/sip.js.git#30f1d19ccbf8e83cdac03092cc1f6f60d2ef886a",
     "tone-stream": "^1.4.0",
     "wav": "^1.0.2",
     "xml-js": "^1.6.11"
