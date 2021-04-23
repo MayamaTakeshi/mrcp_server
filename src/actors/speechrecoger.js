@@ -10,6 +10,8 @@ const config = require('config')
 
 const registrar = require('../registrar.js')
 
+const xjs = require('xml-js')
+
 const DtmfSpeechRecogStream = require('../dtmf_speech_recog_stream.js')
 const MorseSpeechRecogStream = require('../morse_speech_recog_stream.js')
 const GoogleSpeechRecogStream = require('../google_speech_recog_stream.js')
@@ -92,9 +94,23 @@ module.exports = (parent, uuid) => spawn(
 			log(__line, 'info', uuid, `got MRCP message ${JSON.stringify(msg.data)}`)
 
 			if(msg.data.method == 'DEFINE-GRAMMAR') {
-                var rs = 200
-                var rr = 'COMPLETE'
-                var headers = {'channel-identifier': msg.data.headers['channel-identifier'], 'completion-cause': '000 success'}
+                var rs
+                var rr
+                var headers = {'channel-identifier': msg.data.headers['channel-identifier']}
+
+                try {
+                    var context = xjs.xml2js(msg.data.body, {compact: false, spaces: 4})
+                    console.log(context)
+                    rs = 200
+                    rr = 'COMPLETE'
+                    headers['completion-cause'] = '000 success'
+                    state.context = context
+                } catch(e) {
+                    console.error(`Error parsing grammar ${e}`)
+                    rs = 407
+                    rs = 'FAILED'
+                    headers['completion-cause'] = '004 grammar-load-failure'
+                }
                 log(__line, 'info', uuid, `sending MRCP response ${req_id} ${rs} ${rr} ${JSON.stringify(headers)}`)
 				var response = mrcp.builder.build_response(req_id, rs, rr, headers)
 				u.safe_write(msg.conn, response)
@@ -120,11 +136,11 @@ module.exports = (parent, uuid) => spawn(
 				var language = msg.data.headers['speech-language']
 
 				if(language == 'dtmf') {
-					state.stream = new DtmfSpeechRecogStream(uuid, language)
+					state.stream = new DtmfSpeechRecogStream(uuid, language, state.context)
 				} else if(language == 'morse') {
-					state.stream = new MorseSpeechRecogStream(uuid, language)
+					state.stream = new MorseSpeechRecogStream(uuid, language, state.context)
 				} else {
-				    state.stream = new GoogleSpeechRecogStream(uuid, language)
+				    state.stream = new GoogleSpeechRecogStream(uuid, language, state.context)
 				}
 
                 state.stream.on('ready', () => {

@@ -18,7 +18,7 @@ const log = (line, level, entity, msg) => {
 }
 
 class MorseSpeechRecogStream extends Writable {
-    constructor(uuid, language) {
+    constructor(uuid, language, context) {
         super()
 
         this.uuid = uuid

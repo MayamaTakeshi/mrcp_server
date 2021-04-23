@@ -16,7 +16,7 @@ const log = (line, level, entity, msg) => {
 }
 
 class DtmfSpeechRecogStream extends Writable {
-    constructor(uuid, language) {
+    constructor(uuid, language, context) {
         super()
 
         this.uuid = uuid

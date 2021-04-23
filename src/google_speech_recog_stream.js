@@ -13,14 +13,17 @@ const { EventEmitter } = require('events')
 
 const VAD = require('node-vad')
 
+const _ = require('lodash')
+
 const FILE = u.filename()
+
 
 const log = (line, level, entity, msg) => {
     logger.log(level, entity, `(${FILE}:${line}) ${msg}`)
 }
 
 class GoogleSpeechRecogStream extends Writable {
-    constructor(uuid, language) {
+    constructor(uuid, language, context) {
         super()
 
         this.uuid = uuid
@@ -29,12 +32,12 @@ class GoogleSpeechRecogStream extends Writable {
 
 		this.last_digit_time = new Date()
 
-        this.setup_speechrecog(language)
+        this.setup_speechrecog(language, context)
 
         this.start_of_input = false
     }
 
-    setup_speechrecog(language) {
+    setup_speechrecog(language, context) {
         var config = {
             //encoding: "MULAW",
             encoding: "LINEAR16",
@@ -42,13 +45,25 @@ class GoogleSpeechRecogStream extends Writable {
             languageCode: language,
         }
 
+        if(context) {
+            console.log(context)
+            if(context.elements[0].elements) {
+                var phrases = _.map(context.elements[0].elements, e => e.elements[0].text)
+
+                config.speechContexts = [{
+                    phrases: phrases,
+                    boost: 2,
+                }]
+            } 
+        }
+
         var request = {
             config,
-            interimResults: false, 
+            interimResults: false,
             singleUtterance: true,
         }
 
-        log(__line, 'debug', this.uuid, 'Creating RecognizeStream')
+        log(__line, 'debug', this.uuid, `Creating RecognizeStream with ${JSON.stringify(request)}`)
 
         this.recognizeStream = speechClient
             .streamingRecognize(request)
@@ -89,7 +104,7 @@ class GoogleSpeechRecogStream extends Writable {
 
         this.vadStream.on('data', data => {
             if(!this.start_of_input) { 
-                console.dir(data)
+                //console.dir(data)
                 if(data.speech.start && data.speech.startTime != 0) {
                     this.eventEmitter.emit('start_of_input')
                     this.start_of_input = true
