@@ -27,6 +27,22 @@ var rstring = () => {
 	return Math.floor(Math.random()*1e6).toString()
 };
 
+var get_transport = (uri) => {
+    var arr = uri.split(";")
+    for(var i=0 ; i<arr.length ; i++) {
+        var item = arr[i]
+        if(item.indexOf(item, "=") < 0) continue
+
+        var key_val = item.split("=")
+        var key = key_val[0]
+        var val = key_val[1]
+        if(key.toLowerCase() == "transport") {
+            return val
+        }
+    } 
+    return "udp"
+}
+
 var process_incoming_call = (uuid, state, req, actor_id) => {
 	log(__line, 'info', uuid, 'got new call')
 
@@ -150,6 +166,7 @@ function create_sip_stack(state, actor_id) {
 		publicAddress: config.local_ip,
 	},
 	function(req) {
+        console.log(req.headers.contact)
 		try {
 	        const uuid = req.headers['call-id']
 			log(__line, 'info', uuid, `got SIP request ${req.method}`);
@@ -297,8 +314,10 @@ module.exports = (parent) => spawn(
 
             var req = data.sip_req
 
+            var transport = get_transport(data.sip_req.uri)
+
             res.headers['record-route'] = req.headers['record-route']
-            res.headers.contact = [{uri: `sip:mrcp_server@${config.local_ip}:${config.sip_port}`}]
+            res.headers.contact = [{uri: `sip:mrcp_server@${config.local_ip}:${config.sip_port}`, params: {transport: transport}}]
             res.headers['content-type'] = 'application/sdp'
             res.content = answer_sdp
 
