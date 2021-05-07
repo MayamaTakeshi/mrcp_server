@@ -1,7 +1,9 @@
+const expect = require("chai").expect
+
 const mrcp_utils = require('mrcp-utils')
 const dm = require('data-matching')
 
-test('parse_sdp', () => {
+describe('parse_sdp', () => {
 	var s = `v=0o=FreeSWITCH 5772550679930491611 4608916746797952899 IN IP4 192.168.1.10
 s=-
 c=IN IP4 192.168.1.10
@@ -55,12 +57,12 @@ a=mid:1`;
 	var res = matcher(sdp, store, true)
 	console.log(`res=${res}`)
 
-	expect(res).toBeTruthy()
-	expect(store.ip).toBe('192.168.1.10')
+	expect(res).to.be.ok
+	expect(store.ip).to.equal('192.168.1.10')
 
-	expect(store.type).toBe('application')
-	expect(store.rtp_port).toBe(14238)
-	expect(store.protocol).toBe("RTP/AVP")
-	expect(store.second_payload).toBe("8")
-	expect(store.resource).toBe('speechsynth')
+	expect(store.type).to.equal('application')
+	expect(store.rtp_port).to.equal(14238)
+	expect(store.protocol).to.equal("RTP/AVP")
+	expect(store.second_payload).to.equal("8")
+	expect(store.resource).to.equal('speechsynth')
 })
