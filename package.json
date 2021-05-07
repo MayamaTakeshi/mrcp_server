@@ -1,6 +1,6 @@
 {
   "name": "mrcp_server",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "A simple Media Resource Control Protocol (MRCPv2) server",
   "main": "index.js",
   "scripts": {
@@ -24,8 +24,8 @@
     "moment": "^2.24.0",
     "morse-decoding-stream": "^1.1.4",
     "morse-node": "^0.1.1",
-    "mrcp": "^1.3.4",
-    "mrcp-utils": "^1.1.1",
+    "mrcp": "^1.3.6",
+    "mrcp-utils": "^1.1.2",
     "nact": "^7.2.2",
     "node-vad": "^1.1.4",
     "sip": "github:kirm/sip.js",
@@ -34,6 +34,6 @@
     "xml-js": "^1.6.11"
   },
   "devDependencies": {
-    "jest": "^26.6.3"
+    "jest": "^26.5.0"
   }
 }

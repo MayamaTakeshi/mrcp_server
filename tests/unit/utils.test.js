@@ -1,4 +1,4 @@
-const utils = require('../../src/utils.js')
+const mrcp_utils = require('mrcp-utils')
 const dm = require('data-matching')
 
 test('parse_sdp', () => {
@@ -21,7 +21,7 @@ a=mid:1`;
 
     s = s.replace(/\n/g, "\r\n")
 
-    var sdp = utils.parse_sdp(s)
+    var sdp = mrcp_utils.parse_sdp(s)
     console.log("sdp:")
     console.dir(sdp)
 
