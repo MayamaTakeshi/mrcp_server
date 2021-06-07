@@ -122,10 +122,19 @@ class GoogleSpeechRecogStream extends Writable {
     _write(data, enc, callback) {
         //console.log(`_write got ${data.length}`)
 
-        var res = this.recognizeStream.write(data)
+        // convert ulaw to L16 little-endian
+        var buf = Buffer.alloc(data.length * 2)
+
+        for(var i=0 ; i<data.length ; i++) {
+            var l = u.ulaw2linear(data[i])
+            buf[i*2] = l & 0xFF
+            buf[i*2+1] = l >>> 8
+        }
+
+        var res = this.recognizeStream.write(buf)
         //log(__line, 'debug', this.uuid, `recognizeStream.write() res=${res}`)
         
-        this.vadStream.write(data)
+        this.vadStream.write(buf)
 
         callback()
 

@@ -73,7 +73,16 @@ class DtmfSpeechRecogStream extends Writable {
     _write(data, enc, callback) {
         //console.log(`_write got ${data.length}`)
 
-        var res = this.dds.write(data)
+        // convert ulaw to L16 little-endian
+        var buf = Buffer.alloc(data.length * 2)
+
+        for(var i=0 ; i<data.length ; i++) {
+            var l = u.ulaw2linear(data[i])
+            buf[i*2] = l & 0xFF
+            buf[i*2+1] = l >>> 8
+        }
+
+        var res = this.dds.write(buf)
         if(!res) {
             log(__line, 'info', this.uuid, `failed to write to stream`)
         }

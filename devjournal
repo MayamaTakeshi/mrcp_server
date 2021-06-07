@@ -397,4 +397,13 @@ And later we can have:
   - polly_ss_agent
 and so on.
 
+UPDATE: used a different approach and created Synth and Recog Streams for Google, DTMF and Morse.
+
+=====================================================
+2021/06/07 takeshi
+
+Tried to add support for julius using julius_server.
+(I had to change to BigEndian and resample from 8000 to 16000).
+However, it didn't work: the recognition only happens when we Ctrl-C mrcp_client.
+So I suspect silence is not right.
 

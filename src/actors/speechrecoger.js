@@ -15,6 +15,7 @@ const xjs = require('xml-js')
 const DtmfSpeechRecogStream = require('../dtmf_speech_recog_stream.js')
 const MorseSpeechRecogStream = require('../morse_speech_recog_stream.js')
 const GoogleSpeechRecogStream = require('../google_speech_recog_stream.js')
+const JuliusSpeechRecogStream = require('../julius_speech_recog_stream.js')
 
 const FILE = u.filename()
 
@@ -140,7 +141,11 @@ module.exports = (parent, uuid) => spawn(
 				} else if(language == 'morse') {
 					state.stream = new MorseSpeechRecogStream(uuid, language, state.context)
 				} else {
-				    state.stream = new GoogleSpeechRecogStream(uuid, language, state.context)
+				    if(msg.data.headers['recognition-engine'] == 'julius') {
+				        state.stream = new JuliusSpeechRecogStream(uuid, language, state.context)
+                    } else {
+				        state.stream = new GoogleSpeechRecogStream(uuid, language, state.context)
+                    }
 				}
 
                 state.stream.on('ready', () => {
