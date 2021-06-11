@@ -80,7 +80,14 @@ class GoogleSpeechRecogStream extends Writable {
 
                 if(!data.results) return
 
-                if(!data.results[0]) return
+                if(!data.results[0]) {
+                    if(data.speechEventType == "END_OF_SINGLE_UTTERANCE") {
+                        transcript = ""
+                        confidence = 0
+                    }
+                } else {
+                    return
+                }
 
                 this.eventEmitter.emit('data', {
                     transcript: transcript,
