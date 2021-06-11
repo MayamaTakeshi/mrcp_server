@@ -6,6 +6,10 @@ module.exports = {
     rtp_hi_port: 10400, // Highest UDP Port Number for RTP
     rtp_timeout: 5000,  // Timeout for RTP packets to be exchanged. If there is no activity for more than this, the SIP call will be terminated
 
-    julius_server_ip: '192.168.225.131', // IGNORE THIS FOR NOW (under development)
-    julius_server_port: 10500, // IGNORE THIS FOR NOW (under development)
+    julius: {
+        'ja-JP': {
+            server_ip: '0.0.0.0',
+            server_port: 10500,
+        },
+    },
 }

@@ -29,6 +29,7 @@
     "nact": "^7.2.2",
     "node-vad": "^1.1.4",
     "sip": "github:kirm/sip.js",
+    "speech-recog-stream": "^1.0.1",
     "tone-stream": "^1.4.0",
     "wav": "^1.0.2",
     "xml-js": "^1.6.11"

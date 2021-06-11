@@ -9,7 +9,7 @@ const { EventEmitter } = require('events')
 
 const _ = require('lodash')
 
-const net = require('net')
+const SpeechRecogStream = require('speech-recog-stream')
 
 const config = require('config')
 
@@ -31,27 +31,44 @@ class JuliusSpeechRecogStream extends Writable {
         this.setup_speechrecog(language, context)
 
         this.start_of_input = false
+
+        this.language = language
     }
 
     setup_speechrecog(language, context) {
-        log(__line, 'debug', this.uuid, `Creating TCP Client to Julius Server`)
+        const opts = {
+            server_ip: config.julius[language].server_ip,
+            server_port: config.julius[language].server_port,
+        }
 
-        this.client = new net.Socket();
-        this.client.connect(config.julius_server_port, config.julius_server_ip, function() {
-            log(__line, 'debug', this.uuid, `TCP Client connected`)
+        this.srs = new SpeechRecogStream(opts)
+
+        this.srs.on('data', data => {
+            log(JSON.stringify(data))
+            if(data.event == 'speech_start' && !this.start_of_input) {
+                this.eventEmitter.emit('start_of_input')
+                this.start_of_input = true
+            } else if(data.event == 'result') {
+                var transcript = data.text
+                if(this.language == 'ja-JP') {
+                    // remove spaces for japanese
+                    transcript = transcript.split(" ").join("")
+                }
+                this.eventEmitter.emit('data', {
+                    transcript: transcript,
+                    confidence: 1.0,
+                })
+            }
         })
 
-        this.client.on('data', function(data) {
-            log(__line, 'debug', this.uuid, `TCP Client received ${data}`)
-        })
-
-        this.client.on('close', function() {
-            log(__line, 'debug', this.uuid, `TCP Client closed`)
-        })
-
-        setTimeout(() => {
+        this.srs.on('ready', () => {
+            log('ready')
             this.eventEmitter.emit('ready')
-        }, 0)           
+        })
+
+        this.srs.on('error', err => {
+            this.eventEmitter.emit('error', err)
+        })
     }
 
     on(evt, cb) {
@@ -75,7 +92,7 @@ class JuliusSpeechRecogStream extends Writable {
             buf[i*4+3] = l & 0xFF
         }
 
-        this.client.write(buf)
+        this.srs.write(buf)
 
         callback()
 
@@ -85,13 +102,12 @@ class JuliusSpeechRecogStream extends Writable {
     _final(callback) {
         log(__line, 'info', this.uuid, '_final')
 
-        // TODO: must remove listeners
-        this.client.end()
-        this.client = null
+        this.eventEmitter.removeAllListeners()
+        this.srs.destroy()
+        this.srs = null
 
         callback()
     }
-
 }
 
 module.exports = JuliusSpeechRecogStream
