@@ -222,7 +222,6 @@ function free_call(state, call, uuid) {
 
     log(__line, 'info', uuid, `deallocated rtp_session ${call.rtp_session.id}`)
 
-    registrar[uuid].rtp_session.remove_all_listeners()
     delete registrar[uuid]
     log(__line, 'info', uuid, `removed from registrar`)
 }

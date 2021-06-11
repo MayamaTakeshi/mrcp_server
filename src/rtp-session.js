@@ -13,6 +13,7 @@ class RtpSession {
 		this.local_port = address.port
 
 		this._socket.on('message', (msg, rinfo) => {
+ 			//console.log(`RtpSession(${this.local_ip}:${this.local_port}) got packet from ${rinfo.address}:${rinfo.port}`)
 			if(rinfo.address != this.remote_ip || rinfo.port != this.remote_port) {
 				console.log(`Ignoring packet out of RTP session from ${rinfo.address}:${rinfo.port}`)
                 return
