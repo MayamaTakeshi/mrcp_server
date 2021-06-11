@@ -6,6 +6,8 @@ This is a Media Resource Control Protocol (v2) server that I'm writing in node.j
 
 It currently supports Google Speech (or in case you don't have Google Speech service credentials you can try with languages 'dtmf' and 'morse')
 
+It also support Julius Speech Recognition using our [julius_server](https://github.com/MayamaTakeshi/julius_server)
+
 To test things so far:
 
 Start the server:
