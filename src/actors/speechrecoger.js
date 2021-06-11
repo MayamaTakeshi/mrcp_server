@@ -175,6 +175,20 @@ module.exports = (parent, uuid) => spawn(
                     state.stream = null
                     state.ready = false
                 })
+
+                state.stream.on('error', err => {
+                    if(!state.ready) return
+
+                    send_recognition_complete(uuid, state, '', 0)
+                    stop_myself(state, ctx)
+                })
+
+                state.stream.on('close', () => {
+                    if(!state.ready) return
+
+                    send_recognition_complete(uuid, state, '', 0)
+                    stop_myself(state, ctx)
+                })
 			} else if(msg.data.method == 'STOP') {
                 send_stop_reply(req_id, uuid, msg)
 

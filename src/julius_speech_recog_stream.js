@@ -69,6 +69,10 @@ class JuliusSpeechRecogStream extends Writable {
         this.srs.on('error', err => {
             this.eventEmitter.emit('error', err)
         })
+
+        this.srs.on('close', () => {
+            this.eventEmitter.emit('close')
+        })
     }
 
     on(evt, cb) {
@@ -103,8 +107,10 @@ class JuliusSpeechRecogStream extends Writable {
         log(__line, 'info', this.uuid, '_final')
 
         this.eventEmitter.removeAllListeners()
-        this.srs.destroy()
-        this.srs = null
+        if(this.srs) {
+            this.srs.end()
+            this.srs = null
+        }
 
         callback()
     }
