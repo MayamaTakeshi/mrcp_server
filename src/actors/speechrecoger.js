@@ -63,6 +63,7 @@ var send_stop_reply = (req_id, uuid, msg) => {
 }
 
 var send_recognition_complete = (uuid, state, result, confidence) => {
+    log(__line, 'info', uuid, `send_recognition_complete: result=${result}`)
     var evt = 'RECOGNITION-COMPLETE'
     var req_id = state.request_id
     var req_state = 'COMPLETE'
@@ -168,7 +169,11 @@ module.exports = (parent, uuid) => spawn(
                 })
 
                 state.stream.on('data', data => {
-                    if(!state.ready) return
+                    log(__line, 'info', uuid, JSON.stringify(data))
+                    if(!state.ready) {
+                        log(__line, 'debug', uuid, 'not ready')
+                        return
+                    }
 
                     send_recognition_complete(uuid, state, data.transcript, data.confidence)
                     state.stream.end()
