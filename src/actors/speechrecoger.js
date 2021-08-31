@@ -143,9 +143,9 @@ module.exports = (parent, uuid) => spawn(
 				} else if(language == 'morse') {
 					state.stream = new MorseSpeechRecogStream(uuid, language, state.context)
 				} else {
-				    if(msg.data.headers['recognition-engine'] == 'julius') {
+				    if(msg.data.headers['engine'] == 'julius') {
 				        state.stream = new JuliusSpeechRecogStream(uuid, language, state.context)
-				    } else if(msg.data.headers['recognition-engine'] == 'olaris') {
+				    } else if(msg.data.headers['engine'] == 'olaris') {
 				        state.stream = new OlarisSpeechRecogStream(uuid, language, state.context)
                     } else {
 				        state.stream = new GoogleSpeechRecogStream(uuid, language, state.context)
