@@ -8,6 +8,8 @@ It currently supports Google Speech (or in case you don't have Google Speech ser
 
 It also support Julius Speech Recognition using our [julius_server](https://github.com/MayamaTakeshi/julius_server)
 
+It also supports Japanese Speech Recognition using olaris API
+
 To test things so far:
 
 Start the server:

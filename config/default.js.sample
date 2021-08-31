@@ -12,4 +12,11 @@ module.exports = {
             server_port: 10500,
         },
     },
+
+    olaris: {
+        api_base: 'realtime.stt.batoner.works/real-time-decode',
+        product_name: 'YOUR_PRODUCT_NAME',
+        organization_id: 'YOUR_ORGANIZATION_ID',
+        api_key: 'YOUR_API_KEY',
+    },
 }

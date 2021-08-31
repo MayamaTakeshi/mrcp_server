@@ -16,6 +16,7 @@ const DtmfSpeechRecogStream = require('../dtmf_speech_recog_stream.js')
 const MorseSpeechRecogStream = require('../morse_speech_recog_stream.js')
 const GoogleSpeechRecogStream = require('../google_speech_recog_stream.js')
 const JuliusSpeechRecogStream = require('../julius_speech_recog_stream.js')
+const OlarisSpeechRecogStream = require('../olaris_speech_recog_stream.js')
 
 const FILE = u.filename()
 
@@ -144,6 +145,8 @@ module.exports = (parent, uuid) => spawn(
 				} else {
 				    if(msg.data.headers['recognition-engine'] == 'julius') {
 				        state.stream = new JuliusSpeechRecogStream(uuid, language, state.context)
+				    } else if(msg.data.headers['recognition-engine'] == 'olaris') {
+				        state.stream = new OlarisSpeechRecogStream(uuid, language, state.context)
                     } else {
 				        state.stream = new GoogleSpeechRecogStream(uuid, language, state.context)
                     }
