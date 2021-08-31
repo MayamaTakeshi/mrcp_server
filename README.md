@@ -27,6 +27,11 @@ Start the server:
   node index.js
 ```
 
+If 'npm install' fails, try upgrading it (npm v.6 will probably fail. npm v.7 works):
+```
+npm install -g npm@latest
+```
+
 Then clone https://github.com/MayamaTakeshi/mrcp_client and follow its installation instructions.
 
 Follow instructions there on how to perform tests and load tests.
