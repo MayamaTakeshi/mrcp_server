@@ -92,6 +92,17 @@ class OlarisSpeechRecogStream extends Writable {
                     organization_id: config.olaris.organization_id,
                     model_alias: 'model_batoner_japanese',
                 }
+
+                if(context) {
+                    console.log(context)
+                    if(context.elements[0].elements) {
+                        var phrases = _.map(context.elements[0].elements, e => e.elements[0].text)
+
+                        msg.words = phrases
+                    }
+                }
+
+                console.log(msg)
                 
                 ws.send(JSON.stringify(msg))
 
