@@ -30,21 +30,20 @@
     <script src="/socket.io/socket.io.js"></script>
   </head>
   <body>
-
     <div id="vue1">
       <b-button pill>Recognize</b-button>
 
       <b-table id="vue1" striped hover fixed :items="items" :fields="fields"></b-table>
     </div>
 
+    <audio id="the_audio"/>
+
     <script>
       var socket = io()
 
-      var items = [
-            {google:'自民党の総裁選挙は、菅総理大臣が立候補を断念したことを受けて党内の動きが活発になっています。立候補を表明している岸田前政務調査会長や、意欲を示している高市前総務大臣に加え、河野規制改革担当大臣と野田幹事長代行が立候補を検討しているほか、石破元幹事長も状況を見極めて対応を決めることにしています。', olaris:'bla',julius:'bla'},
-            {google:'ble', olaris:'ble',julius:'ble'},
-            {google:'bli', olaris:'bli',julius:'bli'},
-      ]
+      var working = false
+
+      var items = []
 
       var vm = new Vue({
         el: '#vue1',
@@ -54,9 +53,46 @@
         }
       })
 
-      setInterval(() => {
-         Vue.set(vm.items, 0, {'google': new Date(), 'olaris': new Date(), 'julius': new Date()})
-      }, 1000)
+      var constraints = { audio: true, video: false}
+
+      navigator.mediaDevices.getUserMedia(constraints)
+      .then(function(mediaStream) {
+          var audio = document.querySelector('#the_audio')
+          audio.srcObject = mediaStream
+
+          const context = new AudioContext({sampleRate: 8000})
+          const source = context.createMediaStreamSource(mediaStream)
+          const processor = context.createScriptProcessor(1024, 1, 1)
+
+          source.connect(processor)
+          processor.connect(context.destination)
+
+          processor.onaudioprocess = function(e) {
+            // Do something with the data, e.g. convert it to WAV
+              if(working) {
+                  socket.emit('audio', {data: e.inputBuffer.getChannelData(0)})
+              } 
+          }
+
+          socket.emit("start")
+      })
+      .catch(function(err) { console.log(err.name + ": " + err.message) }) // always check for errors at the end.
+
+      socket.on('started', () => {
+        console.log("received started")
+        working = true 
+      })
+
+      socket.on('partial', data => {
+         console.log("received partial")
+         Vue.set(vm.items, 0, data)
+      })
+
+      socket.on('final', data => {
+         console.log("received final")
+         Vue.set(vm.items, 0, data)
+         working = false
+      })
     </script>
   </body>
 </html>
