@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "engines": {"node": "v12.19.0"},
+  "engines": {
+    "node": "v12.19.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.17.1",
-    "socket.io": "^4.2.0"
+    "socket.io": "^4.2.0",
+    "tartjs": "^0.0.0"
   }
 }

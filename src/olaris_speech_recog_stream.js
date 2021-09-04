@@ -13,8 +13,6 @@ const SpeechRecogStream = require('speech-recog-stream')
 
 const WebSocket = require('ws')
 
-const config = require('config')
-
 const FILE = u.filename()
 
 
@@ -23,19 +21,19 @@ const log = (line, level, entity, msg) => {
 }
 
 // issue_one_time_token
-async function issueToken() {
+async function issueToken(config) {
   const options = {
     method: 'POST',
-    uri: `https://${config.olaris.api_base}/v1/issue_token/`,
+    uri: `https://${config.api_base}/v1/issue_token/`,
     headers: {
       'accept': 'text/html',
-      'Authorization': `Bearer ${config.olaris.api_key}`,
+      'Authorization': `Bearer ${config.api_key}`,
       'Content-type': 'application/json'
     },
     body: {
-      product_name: config.olaris.product_name,
-      organization_id: config.olaris.organization_id,
-      user_id: config.olaris.user_id
+      product_name: config.product_name,
+      organization_id: config.organization_id,
+      user_id: config.user_id
     },
     json: true
   }
@@ -53,24 +51,24 @@ async function issueToken() {
 
 
 class OlarisSpeechRecogStream extends Writable {
-    constructor(uuid, language, context) {
+    constructor(uuid, language, context, config) {
         super()
 
         this.uuid = uuid
 
         this.eventEmitter = new EventEmitter()
 
-        this.setup_speechrecog(language, context)
+        this.setup_speechrecog(language, context, config)
 
         this.start_of_input = false
 
         this.language = language
     }
 
-    async setup_speechrecog(language, context) {
+    async setup_speechrecog(language, context, config) {
         const self = this
 
-        const accessToken = await issueToken()
+        const accessToken = await issueToken(config)
         if (accessToken === null) {
             setTimeout(() => {
                 self.eventEmitter.emit('error', 'could_not_obtain_token')
@@ -79,7 +77,7 @@ class OlarisSpeechRecogStream extends Writable {
         }
 
         try {
-            const ws = new WebSocket(`wss://${config.olaris.api_base}/ws/`)
+            const ws = new WebSocket(`wss://${config.api_base}/ws/`)
             self.ws = ws
 
 
@@ -88,8 +86,8 @@ class OlarisSpeechRecogStream extends Writable {
                     access_token: accessToken,
                     type: 'start',
                     sampling_rate: 8000,
-                    product_name: config.olaris.product_name,
-                    organization_id: config.olaris.organization_id,
+                    product_name: config.product_name,
+                    organization_id: config.organization_id,
                     model_alias: 'model_batoner_japanese',
                 }
 

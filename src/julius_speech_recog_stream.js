@@ -11,8 +11,6 @@ const _ = require('lodash')
 
 const SpeechRecogStream = require('speech-recog-stream')
 
-const config = require('config')
-
 const FILE = u.filename()
 
 
@@ -21,24 +19,24 @@ const log = (line, level, entity, msg) => {
 }
 
 class JuliusSpeechRecogStream extends Writable {
-    constructor(uuid, language, context) {
+    constructor(uuid, language, context, config) {
         super()
 
         this.uuid = uuid
 
         this.eventEmitter = new EventEmitter()
 
-        this.setup_speechrecog(language, context)
+        this.setup_speechrecog(language, context, config)
 
         this.start_of_input = false
 
         this.language = language
     }
 
-    setup_speechrecog(language, context) {
+    setup_speechrecog(language, context, config) {
         const opts = {
-            server_ip: config.julius[language].server_ip,
-            server_port: config.julius[language].server_port,
+            server_ip: config[language].server_ip,
+            server_port: config[language].server_port,
         }
 
         this.srs = new SpeechRecogStream(opts)

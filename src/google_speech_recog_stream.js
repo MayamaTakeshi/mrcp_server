@@ -23,7 +23,7 @@ const log = (line, level, entity, msg) => {
 }
 
 class GoogleSpeechRecogStream extends Writable {
-    constructor(uuid, language, context) {
+    constructor(uuid, language, context, config) {
         super()
 
         this.uuid = uuid

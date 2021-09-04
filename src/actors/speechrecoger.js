@@ -139,16 +139,16 @@ module.exports = (parent, uuid) => spawn(
 				var language = msg.data.headers['speech-language']
 
 				if(language == 'dtmf') {
-					state.stream = new DtmfSpeechRecogStream(uuid, language, state.context)
+					state.stream = new DtmfSpeechRecogStream(uuid, language, state.context, null)
 				} else if(language == 'morse') {
-					state.stream = new MorseSpeechRecogStream(uuid, language, state.context)
+					state.stream = new MorseSpeechRecogStream(uuid, language, state.context, null)
 				} else {
 				    if(msg.data.headers['engine'] == 'julius') {
-				        state.stream = new JuliusSpeechRecogStream(uuid, language, state.context)
+				        state.stream = new JuliusSpeechRecogStream(uuid, language, state.context, config.julius)
 				    } else if(msg.data.headers['engine'] == 'olaris') {
-				        state.stream = new OlarisSpeechRecogStream(uuid, language, state.context)
+				        state.stream = new OlarisSpeechRecogStream(uuid, language, state.context, config.olaris)
                     } else {
-				        state.stream = new GoogleSpeechRecogStream(uuid, language, state.context)
+				        state.stream = new GoogleSpeechRecogStream(uuid, language, state.context, null)
                     }
 				}
 
