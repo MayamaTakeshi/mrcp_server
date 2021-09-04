@@ -70,7 +70,16 @@
           processor.onaudioprocess = function(e) {
             // Do something with the data, e.g. convert it to WAV
               if(working) {
-                  socket.emit('audio', {data: e.inputBuffer.getChannelData(0)})
+                  var data = e.inputBuffer.getChannelData(0)
+                  /*
+                  data = data.slice(0,4)
+                  data[0] = 0.0
+                  data[1] = -1.0
+                  data[2] = 1.0
+                  data[3] = 0.9
+                  */
+                  socket.emit('audio', {data: data})
+                  //console.log(data)
               } 
           }
 

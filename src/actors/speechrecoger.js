@@ -148,7 +148,7 @@ module.exports = (parent, uuid) => spawn(
 				    } else if(msg.data.headers['engine'] == 'olaris') {
 				        state.stream = new OlarisSpeechRecogStream(uuid, language, state.context, config.olaris)
                     } else {
-				        state.stream = new GoogleSpeechRecogStream(uuid, language, state.context, null)
+				        state.stream = new GoogleSpeechRecogStream(uuid, language, state.context, {src_encoding: 'ulaw'})
                     }
 				}
 

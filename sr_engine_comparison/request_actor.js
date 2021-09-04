@@ -22,26 +22,39 @@ const float32ToInt16 = f => {
   return f * multiplier;
 }
 
+function convertFloat32ToInt16(n) {
+   var v = n < 0 ? n * 32768 : n * 32767;       // convert in range [-32768, 32767]
+   return Math.max(-32768, Math.min(32768, v)); // clamp
+}
 
 function write_to_streams(self, state, data) {
-    /*
-    let buff = convert(data.data, 'float32', 'uint16')
-    console.log("----")
-    console.log(data.data)
-    console.log(Buffer.from(buff))
-    */
-
-   var buff = new Uint16Array(data.data.length)
-    for (let i = 0; i < data.data.length; i++) {
-      buff[i] = float32ToUInt16(data.data[i])
+    var buff = new Float32Array(data.data.length/4)
+    for(var i=0 ;i <buff.length ; i++) {
+      buff[i] = data.data.readFloatLE(i)
     }
 
-    console.log(buff)
-    console.log(Buffer.from(buff))
-    
+   //console.dir(buff)
+
+   var buff2 = convert(buff, {
+        dtype: 'float32',
+        channels: 1,
+        interleaved: false,
+        endianness: 'le'
+    }, {
+        dtype: 'uint16',
+        channels: 1,
+        interleaved: false,
+        endianness: 'le'
+    })
+
+    var buff3 = Buffer.alloc(buff2.length * 2)
+    for(var i=0; i<buff2.length; i++) {
+       buff3[i*2] = buff2[i] & 0xff
+       buff3[i*2+1] = buff2[i] >> 8
+    }
 
     for([key, stream] of Object.entries(state.sr_streams)) {
-        stream.write(Buffer.from(buff))
+        stream.write(buff3)
     }
 }
 
@@ -50,7 +63,7 @@ function prepare_speech_recog_streams(self, state) {
 
     var streams = {}
 
-    var stream = new GoogleSpeechRecogStream(uuid_v4(), 'ja-JP', null, null)
+    var stream = new GoogleSpeechRecogStream(uuid_v4(), 'ja-JP', null, {src_encoding: 'l16'})
     streams['google'] = stream
 
     stream.on('ready', () => {

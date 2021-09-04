@@ -35,6 +35,8 @@ class GoogleSpeechRecogStream extends Writable {
         this.setup_speechrecog(language, context)
 
         this.start_of_input = false
+
+        this.src_encoding = config.src_encoding
     }
 
     setup_speechrecog(language, context) {
@@ -122,15 +124,20 @@ class GoogleSpeechRecogStream extends Writable {
     }
 
     _write(data, enc, callback) {
-        //console.log(`_write got ${data.length}`)
+        //console.log(`_write got data.length=${data.length} src_encoding=${this.src_encoding}`)
 
-        // convert ulaw to L16 little-endian
-        var buf = Buffer.alloc(data.length * 2)
+        var buf
+        if(this.src_encoding == 'l16') {
+            buf = data
+        } else {
+            // convert ulaw to L16 little-endian
+            buf = Buffer.alloc(data.length * 2)
 
-        for(var i=0 ; i<data.length ; i++) {
-            var l = u.ulaw2linear(data[i])
-            buf[i*2] = l & 0xFF
-            buf[i*2+1] = l >>> 8
+            for(var i=0 ; i<data.length ; i++) {
+                var l = u.ulaw2linear(data[i])
+                buf[i*2] = l & 0xFF
+                buf[i*2+1] = l >>> 8
+            }
         }
 
         var res = this.recognizeStream.write(buf)
