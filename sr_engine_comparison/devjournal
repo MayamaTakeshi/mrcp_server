@@ -1,0 +1,22 @@
+-------------------------------------------------------------------------------------
+2021/09/03 takeshi:
+
+Draft
+
+
+Client:
+  open websocket with server
+  start = > send msg 'start'
+  wait msg 'ready'
+  tell user to start speaking
+  get audio and send to server
+
+
+Server:
+  wait websocket connection
+  msg start => create write streams to SR with providers (google, olaris, julius)
+  send msg 'ready'
+  msg audio => write to streams
+  upon reception of results, send msg to client
+  
+

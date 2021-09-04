@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+      #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+      #input:focus { outline: none; }
+      #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages > li { padding: 0.5rem 1rem; }
+      #messages > li:nth-child(odd) { background: #efefef; }
+    </style>
+
+    <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap/dist/css/bootstrap.min.css" />
+    <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css" />
+
+    <script src="//polyfill.io/v3/polyfill.min.js?features=es2015%2CIntersectionObserver" crossorigin="anonymous"></script>
+
+    <!-- Load Vue followed by BootstrapVue -->
+    <script src="//unpkg.com/vue@latest/dist/vue.min.js"></script>
+    <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"></script>
+
+    <!-- Load the following for BootstrapVueIcons support -->
+    <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue-icons.min.js"></script>
+
+    <script src="/socket.io/socket.io.js"></script>
+  </head>
+  <body>
+
+    <div id="vue1">
+      <b-button pill>Recognize</b-button>
+
+      <b-table id="vue1" striped hover fixed :items="items" :fields="fields"></b-table>
+    </div>
+
+    <script>
+      var socket = io()
+
+      var items = [
+            {google:'自民党の総裁選挙は、菅総理大臣が立候補を断念したことを受けて党内の動きが活発になっています。立候補を表明している岸田前政務調査会長や、意欲を示している高市前総務大臣に加え、河野規制改革担当大臣と野田幹事長代行が立候補を検討しているほか、石破元幹事長も状況を見極めて対応を決めることにしています。', olaris:'bla',julius:'bla'},
+            {google:'ble', olaris:'ble',julius:'ble'},
+            {google:'bli', olaris:'bli',julius:'bli'},
+      ]
+
+      var vm = new Vue({
+        el: '#vue1',
+        data: {
+          fields: ['google', 'olaris', 'julius'],
+          items: items,
+        }
+      })
+
+      setInterval(() => {
+         Vue.set(vm.items, 0, {'google': new Date(), 'olaris': new Date(), 'julius': new Date()})
+      }, 1000)
+    </script>
+  </body>
+</html>
