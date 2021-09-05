@@ -46,7 +46,13 @@
     <div id="vue1">
         <div class="col-md-12">
             <div class="centercontent">
-                <b-button variant="success" :disabled="state != 'idle' && state != 'working'" v-on:click="handleClick">{{ state == 'working' ? 'Stop' : 'Start' }}</b-button>
+                <b-button variant="primary" :disabled="state != 'idle' && state != 'working'" v-on:click="handleClick">{{ state == 'working' ? 'Stop' : 'Start' }}</b-button>
+
+                <span style="font-size: 1.5rem; color: Green;">
+                  <span :style="{visibility: state == 'working' ? 'visible' : 'hidden'}">
+                    <i>   </i><i class="fas fa-microphone"></i><i>Capturing mic audio. Please say something.</i>
+                  </span>
+                </span>
             </div> 
          </div>
 
