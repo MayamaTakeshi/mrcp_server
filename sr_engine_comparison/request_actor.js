@@ -9,7 +9,7 @@ const OlarisSpeechRecogStream = require('../src/olaris_speech_recog_stream.js')
 
 const config = require('../config/default.js')
 
-const TIMEOUT = 7000
+const TIMEOUT = 15000
 
 function close_speech_recog_stream(self, state, engine) {
     if(!state.sr_streams) return
