@@ -140,6 +140,8 @@ class GoogleSpeechRecogStream extends Writable {
             }
         }
 
+        //console.dir(buf)
+
         var res = this.recognizeStream.write(buf)
         //log(__line, 'debug', this.uuid, `recognizeStream.write() res=${res}`)
         

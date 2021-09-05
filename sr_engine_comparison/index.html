@@ -28,12 +28,30 @@
     <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue-icons.min.js"></script>
 
     <script src="/socket.io/socket.io.js"></script>
+
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous"/>
+
+    <style>
+    .centercontent {
+        padding:10px;
+    }
+
+    /* for validator */
+    a:link {
+    text-decoration:none;
+    }
+    </style>
   </head>
   <body>
     <div id="vue1">
-      <b-button pill>Recognize</b-button>
+        <div class="col-md-12">
+            <div class="centercontent">
+                <a href="#" class="btn btn-primary"><i class="fa fa-stop" style="color: red;"></i></a>
+                <a href="#" class="btn btn-primary"><i class="fa fa-play" style="color: green;"></i></a>
+            </div> 
+         </div>
 
-      <b-table id="vue1" striped hover fixed :items="items" :fields="fields"></b-table>
+         <b-table id="vue1" striped hover fixed :items="items" :fields="fields"></b-table>
     </div>
 
     <audio id="the_audio"/>
@@ -53,6 +71,19 @@
         }
       })
 
+      function float32ToLinear16(float32Arr) {
+        var int16 = new Int16Array(float32Arr.length)
+        for (var i =0; i < float32Arr.length; ++i) {
+          // force number in [-1, 1]
+          var s = Math.max(-1, Math.min(1, float32Arr[i]))
+
+          // convert 32 bit float -> 16 bit int.
+          // 0x7fff = max 16 bit num. 0x8000 = min 16 bit num.
+          int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
+        }
+        return int16
+      }
+
       var constraints = { audio: true, video: false}
 
       navigator.mediaDevices.getUserMedia(constraints)
@@ -68,16 +99,10 @@
           processor.connect(context.destination)
 
           processor.onaudioprocess = function(e) {
-            // Do something with the data, e.g. convert it to WAV
               if(working) {
-                  var data = e.inputBuffer.getChannelData(0)
-                  /*
-                  data = data.slice(0,4)
-                  data[0] = 0.0
-                  data[1] = -1.0
-                  data[2] = 1.0
-                  data[3] = 0.9
-                  */
+                  var float32Audio = event.inputBuffer.getChannelData(0) 
+                  var linear16 = float32ToLinear16(float32Audio)
+                  var data = linear16.buffer
                   socket.emit('audio', {data: data})
                   //console.log(data)
               } 

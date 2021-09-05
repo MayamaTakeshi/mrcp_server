@@ -17,44 +17,11 @@ function close_speech_recog_streams(self, state) {
     }
 }
 
-const float32ToInt16 = f => {
-  const multiplier = f < 0 ? 0x8000 : 0x7fff; // 16-bit signed range is -32768 to 32767
-  return f * multiplier;
-}
-
-function convertFloat32ToInt16(n) {
-   var v = n < 0 ? n * 32768 : n * 32767;       // convert in range [-32768, 32767]
-   return Math.max(-32768, Math.min(32768, v)); // clamp
-}
-
 function write_to_streams(self, state, data) {
-    var buff = new Float32Array(data.data.length/4)
-    for(var i=0 ;i <buff.length ; i++) {
-      buff[i] = data.data.readFloatLE(i)
-    }
-
-   //console.dir(buff)
-
-   var buff2 = convert(buff, {
-        dtype: 'float32',
-        channels: 1,
-        interleaved: false,
-        endianness: 'le'
-    }, {
-        dtype: 'uint16',
-        channels: 1,
-        interleaved: false,
-        endianness: 'le'
-    })
-
-    var buff3 = Buffer.alloc(buff2.length * 2)
-    for(var i=0; i<buff2.length; i++) {
-       buff3[i*2] = buff2[i] & 0xff
-       buff3[i*2+1] = buff2[i] >> 8
-    }
+    //console.dir(data)
 
     for([key, stream] of Object.entries(state.sr_streams)) {
-        stream.write(buff3)
+        stream.write(data.data)
     }
 }
 
@@ -117,11 +84,12 @@ module.exports = function (state) {
             break
         case 'sr_data':
             state.results[msg.engine] = msg.data            
-            if(_.every(state.results, x => x == null)) {
-                state.socker.emit('final', state.results)
+            console.dir(state.results)
+            if(_.every(state.results, x => x != null)) {
+                state.socket.emit('final', state.results)
                 close_speech_recog_streams(self, state)
             } else {
-                state.socker.emit('partial', state.results)
+                state.socket.emit('partial', state.results)
             }
             break
         case 'stop':

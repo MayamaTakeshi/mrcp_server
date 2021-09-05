@@ -19,4 +19,10 @@ Server:
   msg audio => write to streams
   upon reception of results, send msg to client
   
+-------------------------------------------------------------------------------------
+2021/09/05 takeshi:
+
+Got solution to convert Float32Array (AudioBuffer) to Linear16 from:
+  https://gist.github.com/cobookman/ea507d5825464bbc0757e1b1c2492fde
+
 
