@@ -31,6 +31,8 @@ class JuliusSpeechRecogStream extends Writable {
         this.start_of_input = false
 
         this.language = language
+
+        this.src_encoding = config.src_encoding
     }
 
     setup_speechrecog(language, context, config) {
@@ -82,18 +84,35 @@ class JuliusSpeechRecogStream extends Writable {
     _write(data, enc, callback) {
         //console.log(`_write got ${data.length}`)
 
-        // Convert from ulaw to L16 big-endian and resample from 8000 to 16000
+        var buf
 
-        var buf = Buffer.alloc(data.length * 4)
+        if(this.src_encoding == 'l16') {
+            // change from le to be and resample from 8000 to 16000
 
-        for(var i=0 ; i<data.length ; i++) {
-            var l = u.ulaw2linear(data[i])
-            buf[i*4] = l >>> 8
-            buf[i*4+1] = l & 0xFF
-            buf[i*4+2] = l >>> 8
-            buf[i*4+3] = l & 0xFF
+            buf = Buffer.alloc(data.length * 2)
+
+            for(var i=0 ; i<data.length ; i+=2) {
+                buf[i*2] = data[i+1]
+                buf[i*2+1] = data[i]
+                buf[i*2+2] = data[i+1]
+                buf[i*2+3] = data[i]
+            }
+
+        } else {
+            // Convert from ulaw to L16 big-endian and resample from 8000 to 16000
+
+            buf = Buffer.alloc(data.length * 4)
+
+            for(var i=0 ; i<data.length ; i++) {
+                var l = u.ulaw2linear(data[i])
+                buf[i*4] = l >>> 8
+                buf[i*4+1] = l & 0xFF
+                buf[i*4+2] = l >>> 8
+                buf[i*4+3] = l & 0xFF
+            }
         }
 
+        //console.dir(buf)
         this.srs.write(buf)
 
         callback()

@@ -46,8 +46,7 @@
     <div id="vue1">
         <div class="col-md-12">
             <div class="centercontent">
-                <a href="#" class="btn btn-primary"><i class="fa fa-stop" style="color: red;"></i></a>
-                <a href="#" class="btn btn-primary"><i class="fa fa-play" style="color: green;"></i></a>
+                <b-button variant="success" v-on:click="handleClick">{{ working ? 'Stop' : 'Start' }}</b-button>
             </div> 
          </div>
 
@@ -59,8 +58,6 @@
     <script>
       var socket = io()
 
-      var working = false
-
       var items = []
 
       var vm = new Vue({
@@ -68,6 +65,16 @@
         data: {
           fields: ['google', 'olaris', 'julius'],
           items: items,
+          working: false,
+        },
+        methods: {
+            handleClick: function() {
+                if(this.working) {
+                   socket.emit('stop')
+                } else {
+                   socket.emit('start')
+                }
+            }
         }
       })
 
@@ -99,22 +106,21 @@
           processor.connect(context.destination)
 
           processor.onaudioprocess = function(e) {
-              if(working) {
+              //if(vm.working) {
                   var float32Audio = event.inputBuffer.getChannelData(0) 
                   var linear16 = float32ToLinear16(float32Audio)
                   var data = linear16.buffer
                   socket.emit('audio', {data: data})
                   //console.log(data)
-              } 
+              //} 
           }
-
-          socket.emit("start")
       })
       .catch(function(err) { console.log(err.name + ": " + err.message) }) // always check for errors at the end.
 
       socket.on('started', () => {
         console.log("received started")
-        working = true 
+        vm.items.unshift({}) 
+        vm.working = true
       })
 
       socket.on('partial', data => {
@@ -125,7 +131,7 @@
       socket.on('final', data => {
          console.log("received final")
          Vue.set(vm.items, 0, data)
-         working = false
+         vm.working = false
       })
     </script>
   </body>

@@ -63,6 +63,8 @@ class OlarisSpeechRecogStream extends Writable {
         this.start_of_input = false
 
         this.language = language
+
+        this.src_encoding = config.src_encoding
     }
 
     async setup_speechrecog(language, context, config) {
@@ -137,20 +139,34 @@ class OlarisSpeechRecogStream extends Writable {
     _write(data, enc, callback) {
         //console.log(`_write got ${data.length}`)
 
-        // Convert from ulaw to L16 little-endian 
+        var buf
+        var bufferArray
 
-        var buf = []
+        if(this.src_encoding == 'l16') {
+            buf = []
 
-        for(var i=0 ; i<data.length ; i++) {
-            buf[i] = u.ulaw2linear(data[i])
+            for(var i=0 ; i<data.length ; i+=2) {
+                buf[i] = data[i]
+                buf[i+1] = data[i+1]
+            }
+
+            bufferArray = Array.prototype.slice.call(data)
+        } else {
+            // Convert from ulaw to L16 little-endian 
+
+            buf = []
+
+            for(var i=0 ; i<data.length ; i++) {
+                buf[i] = u.ulaw2linear(data[i])
+            }
+            bufferArray =  Array.prototype.slice.call(buf)
         }
 
-        var bufferArray =  Array.prototype.slice.call(buf)
         var msg = {
             type: 'streamAudio',
             stream: bufferArray
         }
-        //console.log(bufferArray)
+        console.log(bufferArray)
         this.ws.send(JSON.stringify(msg))
 
         callback()
