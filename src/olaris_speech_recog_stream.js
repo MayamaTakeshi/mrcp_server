@@ -145,12 +145,11 @@ class OlarisSpeechRecogStream extends Writable {
         if(this.src_encoding == 'l16') {
             buf = []
 
-            for(var i=0 ; i<data.length ; i+=2) {
-                buf[i] = data[i]
-                buf[i+1] = data[i+1]
+            for(var i=0 ; i<data.length/2 ; i++) {
+                buf[i] = (data[i*2+1] << 8) + data[i*2]
             }
 
-            bufferArray = Array.prototype.slice.call(data)
+            bufferArray = Array.prototype.slice.call(buf)
         } else {
             // Convert from ulaw to L16 little-endian 
 
@@ -166,7 +165,7 @@ class OlarisSpeechRecogStream extends Writable {
             type: 'streamAudio',
             stream: bufferArray
         }
-        console.log(bufferArray)
+        //console.log(bufferArray)
         this.ws.send(JSON.stringify(msg))
 
         callback()
