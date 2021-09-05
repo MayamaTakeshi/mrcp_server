@@ -1,9 +1,14 @@
 const express = require('express')
 const app = express()
-const http = require('http')
-const server = http.createServer(app)
-const { Server } = require('socket.io')
-const io = new Server(server)
+
+const fs = require('fs')
+
+const httpsServer = require('https').createServer({
+    key: fs.readFileSync('server.key'),
+    cert: fs.readFileSync('server.cert'),
+}, app);
+
+const io = require('socket.io')(httpsServer, {})
 
 const RequestActor = require('./request_actor.js')
 
@@ -18,6 +23,6 @@ io.on('connection', (socket) => {
     ra({type: 'init'})
 })
 
-server.listen(3000, () => {
+httpsServer.listen(3000, () => {
     console.log('listening on *:3000')
 })
