@@ -46,7 +46,7 @@
     <div id="vue1">
         <div class="col-md-12">
             <div class="centercontent">
-                <b-button variant="success" v-on:click="handleClick">{{ working ? 'Stop' : 'Start' }}</b-button>
+                <b-button variant="success" :disabled="state != 'idle' && state != 'working'" v-on:click="handleClick">{{ state == 'working' ? 'Stop' : 'Start' }}</b-button>
             </div> 
          </div>
 
@@ -58,20 +58,24 @@
     <script>
       var socket = io()
 
-      var items = []
+      var data = {
+        fields: ['google', 'olaris', 'julius'],
+        items: [],
+        state: 'idle',
+      }
 
       var vm = new Vue({
         el: '#vue1',
-        data: {
-          fields: ['google', 'olaris', 'julius'],
-          items: items,
-          working: false,
-        },
+        data: data,
         methods: {
             handleClick: function() {
-                if(this.working) {
+                if(this.state == 'working') {
+                    console.log("sending stop")
+                    this.state = 'stopping'
                    socket.emit('stop')
                 } else {
+                    console.log("sending start")
+                    this.state = 'starting'
                    socket.emit('start')
                 }
             }
@@ -106,21 +110,31 @@
           processor.connect(context.destination)
 
           processor.onaudioprocess = function(e) {
-              //if(vm.working) {
+              if(vm.state == 'working') {
                   var float32Audio = event.inputBuffer.getChannelData(0) 
                   var linear16 = float32ToLinear16(float32Audio)
                   var data = linear16.buffer
                   socket.emit('audio', {data: data})
                   //console.log(data)
-              //} 
+              } 
           }
       })
       .catch(function(err) { console.log(err.name + ": " + err.message) }) // always check for errors at the end.
 
       socket.on('started', () => {
         console.log("received started")
-        vm.items.unshift({}) 
-        vm.working = true
+        data.items.unshift({}) 
+        vm.state = 'working'
+      })
+
+      socket.on('stopped', () => {
+        console.log("received stopped")
+        vm.state = 'idle'
+      })
+
+      socket.on('timeout', () => {
+        console.log("received timeout")
+        vm.state = 'idle'
       })
 
       socket.on('partial', data => {
@@ -131,7 +145,7 @@
       socket.on('final', data => {
          console.log("received final")
          Vue.set(vm.items, 0, data)
-         vm.working = false
+         vm.state = 'idle'
       })
     </script>
   </body>

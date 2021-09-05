@@ -16,12 +16,6 @@ io.on('connection', (socket) => {
 
     var ra = RequestActor({socket: socket}) 
     ra({type: 'init'})
-
-    socket.on('disconnect', () => {
-        console.log('user disconnected')
-        ra({type: 'terminate'})
-        socket.removeAllListeners()
-    })
 })
 
 server.listen(3000, () => {

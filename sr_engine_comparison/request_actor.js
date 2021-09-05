@@ -9,17 +9,30 @@ const OlarisSpeechRecogStream = require('../src/olaris_speech_recog_stream.js')
 
 const config = require('../config/default.js')
 
+const TIMEOUT = 7000
+
+function close_speech_recog_stream(self, state, engine) {
+    if(!state.sr_streams) return
+
+    var stream = state.sr_streams[engine]
+    if(stream) {
+        console.log(`Closing stream ${engine}`)
+        stream.removeAllListeners()
+        stream.end()
+        delete state.sr_streams[engine]
+    }
+}
+
+
 function close_speech_recog_streams(self, state) {
     if(!state.sr_streams) return
     for([key, stream] of Object.entries(state.sr_streams)) {
-        console.log(`Closing stream ${key}`)
-        stream.removeAllListeners()
-        stream.end()
-        delete state.sr_streams[key]
+        close_speech_recog_stream(self, state, key)
     }
 }
 
 function write_to_streams(self, state, data) {
+    //console.log(`write_to_streams ${Object.keys(state.sr_streams)}`)
     //console.dir(data)
 
     for([key, stream] of Object.entries(state.sr_streams)) {
@@ -104,6 +117,27 @@ function prepare_speech_recog_streams(self, state) {
     state.sr_streams_pending = Object.keys(streams).length
 
     state.results = {'google': null, 'olaris': null, 'julius': null}
+
+    if(state.timer_id) {
+        clearTimeout(state.timer_id)
+    }
+
+    state.timer_id = setTimeout(() => {
+        terminate(self, state, 'timeout') 
+    }, TIMEOUT)
+}
+
+function terminate(self, state, reason, msg_data) {
+    if(state.timer_id) {
+        clearTimeout(state.timer_id)
+        state.timer_id = null
+    }
+
+    close_speech_recog_streams(self, state)
+
+    if(reason != 'user_disconnected') {
+        state.socket.emit(reason, msg_data)
+    }
 }
 
 module.exports = function (state) {
@@ -120,7 +154,12 @@ module.exports = function (state) {
 
                 write_to_streams(self, state, data)
             })
-            console.log("init done")
+            state.socket.on('stop', () => {
+                terminate(self, state, 'stopped')
+            })
+            state.socket.on('disconnect', () => {
+                terminate(self, state, 'user_disconnected')
+            })
             break
         case 'sr_ready':
             state.sr_streams_pending--
@@ -128,26 +167,18 @@ module.exports = function (state) {
                 state.socket.emit('started')
             } 
             break
-        case "sr_error":
-            close_speech_recog_streams(self, state)
-            state.socket.emit("error", msg.error)
+        case 'sr_error':
+            terminate(self, state, "error", msg.error)
             break
         case 'sr_data':
             state.results[msg.engine] = msg.data            
             console.dir(state.results)
             if(_.every(state.results, x => x != null)) {
-                state.socket.emit('final', state.results)
-                close_speech_recog_streams(self, state)
+                terminate(self, state, 'final', state.results)
             } else {
                 state.socket.emit('partial', state.results)
+                close_speech_recog_stream(self, state, msg.engine)
             }
-            break
-        case 'stop':
-            close_speech_recog_streams(self, state)
-            state.socket.emit('stopped')
-            break
-        case 'terminate':
-            close_speech_recog_streams(self, state)
             break
         default:
             console.error(`Unexpected msg: ${JSON.stringify(msg)}`)
