@@ -25,4 +25,10 @@ Server:
 Got solution to convert Float32Array (AudioBuffer) to Linear16 from:
   https://gist.github.com/cobookman/ea507d5825464bbc0757e1b1c2492fde
 
+-------------------------------------------------------------------------------------
+2021/09/06 takeshi:
+
+It was necessary to use a resampler (code from https://github.com/felix307253927/resampler/blob/master/Resampler.js) to permit to use it with firefox.
+
+
 
