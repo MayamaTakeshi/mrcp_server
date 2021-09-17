@@ -96,26 +96,26 @@ const startRtpTimer = (state, uuid) => {
 }
 
 module.exports = (parent, uuid) => spawn(
-	parent,
-	(state = {}, msg, ctx) => {
-		//log(__line, 'info', uuid, `got ${JSON.stringify(msg)}`)
-		log(__line, 'info', uuid, `got ${msg.type}`)
-		if(msg.type == MT.START) {
-			return state
-		} else if(msg.type == MT.MRCP_MESSAGE) {
+    parent,
+    (state = {}, msg, ctx) => {
+        //log(__line, 'info', uuid, `got ${JSON.stringify(msg)}`)
+        log(__line, 'info', uuid, `got ${msg.type}`)
+        if(msg.type == MT.START) {
+            return state
+        } else if(msg.type == MT.MRCP_MESSAGE) {
             const uuid = msg.data.uuid
             const req_id = msg.data.request_id
 
-			log(__line, 'info', uuid, `got MRCP message ${JSON.stringify(msg.data)}`)
-			if(msg.data.method == 'SPEAK') {
-				state.conn = msg.conn
+            log(__line, 'info', uuid, `got MRCP message ${JSON.stringify(msg.data)}`)
+            if(msg.data.method == 'SPEAK') {
+                state.conn = msg.conn
 
                 var content
                 if(msg.data.headers['content-type'] == 'application/ssml+xml') {
                     try {
                         content = xml.xml2js(msg.data.body)
                     } catch (err) {
-    				    log(__line, 'info', uuid, `xml parsing error ${err}`)
+                        log(__line, 'info', uuid, `xml parsing error ${err}`)
 
                         var cause = '002 parse-failure'
 
@@ -125,7 +125,7 @@ module.exports = (parent, uuid) => spawn(
                         return state
                     }
                     if(!content.elements || !content.elements[0] || !content.elements[0].type == 'element' || !content.elements[0].name == 'speak') {
-    				    log(__line, 'info', uuid, `Not valid SSML`)
+                        log(__line, 'info', uuid, `Not valid SSML`)
 
                         var cause = '002 parse-failure'
 
@@ -141,16 +141,19 @@ module.exports = (parent, uuid) => spawn(
 
                 var language = msg.data.headers['speech-language']
 
-				if(language == 'dtmf') {
-					state.stream = new DtmfSpeechSynthStream(uuid, msg.data, content)
+                if(language == 'dtmf') {
+                    state.stream = new DtmfSpeechSynthStream(uuid, msg.data, content)
                 } else if(language == 'morse') {
-					state.stream = new MorseSpeechSynthStream(uuid, msg.data, content)
-				} else {
-					state.stream = new GoogleSpeechSynthStream(uuid, msg.data)
-				}
+                    state.stream = new MorseSpeechSynthStream(uuid, msg.data, content)
+                } else {
+                    const engine = msg.data.headers['engine'] ? msg.data.headers['engine'] : config.default_ss_engine
+                    // engine will be used later when we add support for other SS engines
+
+                    state.stream = new GoogleSpeechSynthStream(uuid, msg.data)
+                }
 
                 state.stream.on('ready', () => {
-				    log(__line, 'info', uuid, `Stream ready`)
+                    log(__line, 'info', uuid, `Stream ready`)
 
                     send_in_progress(state, uuid, req_id, msg)
 
@@ -160,7 +163,7 @@ module.exports = (parent, uuid) => spawn(
                 })
 
                 state.stream.on('error', err => {
-				    log(__line, 'info', uuid, `Stream error ${err}`)
+                    log(__line, 'info', uuid, `Stream error ${err}`)
 
                     var cause = '004 error'
 
@@ -175,7 +178,7 @@ module.exports = (parent, uuid) => spawn(
                 })
 
                 state.stream.on('end', () => {
-				    log(__line, 'info', uuid, `Stream end`)
+                    log(__line, 'info', uuid, `Stream end`)
 
                     const cause = '000 normal'
                     send_speak_complete(state, uuid, msg, cause)
@@ -184,22 +187,22 @@ module.exports = (parent, uuid) => spawn(
 
                     state.ready = false
                 })
-			} else if(msg.data.method == 'STOP') {
+            } else if(msg.data.method == 'STOP') {
                 clearRtpTimer(state)
 
                 send_stop_reply(uuid, req_id, msg)
 
                 // I believe stop command will not terminate the MRCP session. It will just stop the current SPEAK operation.
                 // so we don't stop the actor here.
-				//stop_myself(state, ctx)
-			}
-			return state
-		} else if(msg.type == MT.TERMINATE) {
-			stop_myself(state, ctx)
-			return
-		} else {
-			log(__line, 'error', uuid, `got unexpected message ${JSON.stringify(msg)}`)
-			return state
-		}
-	}
+                //stop_myself(state, ctx)
+            }
+            return state
+        } else if(msg.type == MT.TERMINATE) {
+            stop_myself(state, ctx)
+            return
+        } else {
+            log(__line, 'error', uuid, `got unexpected message ${JSON.stringify(msg)}`)
+            return state
+        }
+    }
 )

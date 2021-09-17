@@ -6,6 +6,9 @@ module.exports = {
     rtp_hi_port: 10400, // Highest UDP Port Number for RTP
     rtp_timeout: 5000,  // Timeout for RTP packets to be exchanged. If there is no activity for more than this, the SIP call will be terminated
 
+    default_sr_engine: 'google',
+    default_ss_engine: 'google',
+
     julius: {
         'ja-JP': {
             server_ip: '0.0.0.0',
