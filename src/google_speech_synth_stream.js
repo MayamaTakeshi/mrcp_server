@@ -65,7 +65,7 @@ class GssGenerationStream extends Readable {
             var wavReader = new wav.Reader()
 
             wavReader.on('format', (format) => {
-                wavReader.pipe(writeStream)	
+                wavReader.pipe(writeStream)
             })
 
             writeStream.on('error', (err) => {

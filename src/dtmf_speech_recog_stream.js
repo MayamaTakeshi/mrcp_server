@@ -23,9 +23,9 @@ class DtmfSpeechRecogStream extends Writable {
 
         this.eventEmitter = new EventEmitter()
 
-		this.setup_speechrecog()
+        this.setup_speechrecog()
 
-		this.last_digit_time = new Date()
+        this.last_digit_time = new Date()
 
         setTimeout(() => {
             this.eventEmitter.emit('ready')

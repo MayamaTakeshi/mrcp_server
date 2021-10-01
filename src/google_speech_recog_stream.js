@@ -30,7 +30,7 @@ class GoogleSpeechRecogStream extends Writable {
 
         this.eventEmitter = new EventEmitter()
 
-		this.last_digit_time = new Date()
+        this.last_digit_time = new Date()
 
         this.setup_speechrecog(language, context)
 

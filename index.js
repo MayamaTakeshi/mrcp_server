@@ -11,7 +11,7 @@ const fs = require('fs')
 
 // create directory for temporary speechsynth files
 if (!fs.existsSync('./tmp')){
-	fs.mkdirSync('./tmp');
+    fs.mkdirSync('./tmp');
 }
 
 const sip_server = require('./src/actors/sip_server.js')(system)

@@ -24,7 +24,7 @@ const log = (line, level, entity, msg) => {
 }
 
 var rstring = () => {
-	return Math.floor(Math.random()*1e6).toString()
+    return Math.floor(Math.random()*1e6).toString()
 };
 
 var get_transport = (uri) => {
@@ -44,59 +44,59 @@ var get_transport = (uri) => {
 }
 
 var process_incoming_call = (uuid, state, req, actor_id) => {
-	log(__line, 'info', uuid, 'got new call')
+    log(__line, 'info', uuid, 'got new call')
 
-	if(!req.content || req.content == '') {
+    if(!req.content || req.content == '') {
         var rs = 400
         var rr = 'No SDP (Delayed Media Not Acceptable)'
-		state.sip_stack.send(sip.makeResponse(req, rs, rr))
-		log(__line, 'info', uuid, `refused with ${rs} ${rr}`)
-		return
+        state.sip_stack.send(sip.makeResponse(req, rs, rr))
+        log(__line, 'info', uuid, `refused with ${rs} ${rr}`)
+        return
     }
 
-	var data = {
-		uuid: uuid,
-		sip_req: req,
-	}
+    var data = {
+        uuid: uuid,
+        sip_req: req,
+    }
 
-	var offer_sdp = mrcp_utils.parse_sdp(req.content)
+    var offer_sdp = mrcp_utils.parse_sdp(req.content)
 
-	if(!mrcp_utils.offer_sdp_matcher(offer_sdp, data)) {
+    if(!mrcp_utils.offer_sdp_matcher(offer_sdp, data)) {
         var rs = 400
         var rr = 'Invalid SDP For Speech Service'
-		state.sip_stack.send(sip.makeResponse(req, rs, rr))
-		log(__line, 'info', uuid, `refused with ${rs} ${rr}`)
-		return
-	}
+        state.sip_stack.send(sip.makeResponse(req, rs, rr))
+        log(__line, 'info', uuid, `refused with ${rs} ${rr}`)
+        return
+    }
  
-	if(!data.rtp_payloads.includes("0")) {
+    if(!data.rtp_payloads.includes("0")) {
         // We currently only accept G.711 PCMU (payload_type=0)
         var rs = 415
         var rr = 'Unsupported Media Type (We Only Accept PCMU)'
-		state.sip_stack.send(sip.makeResponse(req, rs, rr))
-		log(__line, 'info', uuid, `refused with ${rs} ${rr}`)
-		return
-	}
+        state.sip_stack.send(sip.makeResponse(req, rs, rr))
+        log(__line, 'info', uuid, `refused with ${rs} ${rr}`)
+        return
+    }
  
-	if(data.resource != 'speechsynth' && data.resource != 'speechrecog') {
+    if(data.resource != 'speechsynth' && data.resource != 'speechrecog') {
         var rs = 415
         var rr = 'Unsupported Resource (We Only Accept speechsynth Or speechrecog)'
-		state.sip_stack.send(sip.makeResponse(req, rs, rr))
-		log(__line, 'info', uuid, `refused with ${rs} ${rr}`)
-		return
-	}
+        state.sip_stack.send(sip.makeResponse(req, rs, rr))
+        log(__line, 'info', uuid, `refused with ${rs} ${rr}`)
+        return
+    }
 
-	var rtp_session_index = state.free_rtp_sessions.shift()
+    var rtp_session_index = state.free_rtp_sessions.shift()
 
-	if(rtp_session_index == undefined) {
+    if(rtp_session_index == undefined) {
         var rs = 500
         var rr = 'No RTP Port Available'
-		state.sip_stack.send(sip.makeResponse(req, rs, rr))
-		log(__line, 'info', uuid, `refused with ${rs} ${rr}`)
-		return
-	}
+        state.sip_stack.send(sip.makeResponse(req, rs, rr))
+        log(__line, 'info', uuid, `refused with ${rs} ${rr}`)
+        return
+    }
 
-	log(__line, 'info', uuid, `allocated rtp_session ${rtp_session_index}`)
+    log(__line, 'info', uuid, `allocated rtp_session ${rtp_session_index}`)
 
     var rtp_session = state.rtp_sessions[rtp_session_index]
 
@@ -109,9 +109,9 @@ var process_incoming_call = (uuid, state, req, actor_id) => {
 
     data.local_ip = rtp_session.local_ip
     data.local_port = rtp_session.local_port
-	data.rtp_session = rtp_session
+    data.rtp_session = rtp_session
 
-	registrar[data.uuid] = data
+    registrar[data.uuid] = data
     log(__line, 'info', uuid, `added to registrar`)
 
     var rs = 100
@@ -119,31 +119,31 @@ var process_incoming_call = (uuid, state, req, actor_id) => {
     state.sip_stack.send(sip.makeResponse(req, rs, rr))
     log(__line, 'info', uuid, `accepted with ${rs} ${rr}`)
 
-	dispatch(state.mrcp_server, {type: MT.SESSION_CREATED, sender: actor_id, data: data})
+    dispatch(state.mrcp_server, {type: MT.SESSION_CREATED, sender: actor_id, data: data})
 }
 
 var process_in_dialog_request = (uuid, state, req) => {
-	if(req.method == 'ACK'){
-		// nothing to do
-		return
-	}
+    if(req.method == 'ACK'){
+        // nothing to do
+        return
+    }
 
-	if(req.method != 'INVITE' && req.method != 'BYE') {
+    if(req.method != 'INVITE' && req.method != 'BYE') {
         var rs = 200
         var rr = 'OK'
-		var res = sip.makeResponse(req, rs, rr)
-		log(__line, 'info', uuid, `unexpected in-dialog ${req.method}. Sending default ${rs} ${rr} reply`)
-		state.sip_stack.send(res)
-		return
-	}
+        var res = sip.makeResponse(req, rs, rr)
+        log(__line, 'info', uuid, `unexpected in-dialog ${req.method}. Sending default ${rs} ${rr} reply`)
+        state.sip_stack.send(res)
+        return
+    }
 
-	if(req.method == 'BYE') {
-		log(__line, 'info', uuid, 'received BYE')
+    if(req.method == 'BYE') {
+        log(__line, 'info', uuid, 'received BYE')
 
         var rs = 200
         var rr = 'OK'
-		var res = sip.makeResponse(req, rs, rr)
-		state.sip_stack.send(res)
+        var res = sip.makeResponse(req, rs, rr)
+        state.sip_stack.send(res)
 
         log(__line, 'info', uuid, `replied with ${rs} ${rr}`)
 
@@ -152,31 +152,31 @@ var process_in_dialog_request = (uuid, state, req) => {
         if(!call) return
 
         free_call(state, call, uuid)
-		return
-	}
+        return
+    }
 
-	log(__line, 'error', uuid, "REINVITE SUPPORT IMPLEMENTATION PENDING")
-	process.exit(1)
+    log(__line, 'error', uuid, "REINVITE SUPPORT IMPLEMENTATION PENDING")
+    process.exit(1)
 }
 
 function create_sip_stack(state, actor_id) {
-	var sip_stack = sip.create({
-		address: config.local_ip,
-		port: config.sip_port,
-		publicAddress: config.local_ip,
-	},
-	function(req) {
+    var sip_stack = sip.create({
+        address: config.local_ip,
+        port: config.sip_port,
+        publicAddress: config.local_ip,
+    },
+    function(req) {
         console.log(req.headers.contact)
-		try {
-	        const uuid = req.headers['call-id']
-			log(__line, 'info', uuid, `got SIP request ${req.method}`);
-			var to_tag = req.headers['to'].params.tag
+        try {
+            const uuid = req.headers['call-id']
+            log(__line, 'info', uuid, `got SIP request ${req.method}`);
+            var to_tag = req.headers['to'].params.tag
 
-			if(!to_tag && req.method != 'INVITE') {
+            if(!to_tag && req.method != 'INVITE') {
                 var rs = 200
                 var rr = 'OK'
                 var res = sip.makeResponse(req, rs, rr)
-				state.sip_stack.send(res)
+                state.sip_stack.send(res)
 
                 if(req.method != 'CANCEL') {
                     log(__line, 'info', uuid, `unexpected out-of-dialog ${req.method}. Sending default ${rs} ${rr} reply`)
@@ -193,25 +193,25 @@ function create_sip_stack(state, actor_id) {
                 rr = 'Request Terminated'
                 res = sip.makeResponse(call.sip_req, rs, rr)
                 log(__line, 'info', uuid, `refused with ${rs} ${rr} due to CANCEL`)
-				state.sip_stack.send(res)
+                state.sip_stack.send(res)
 
                 free_call(state, call, uuid)
 
-				return
-			}
+                return
+            }
 
-			if(to_tag) {
-				process_in_dialog_request(uuid, state, req)
-				return
-			}
+            if(to_tag) {
+                process_in_dialog_request(uuid, state, req)
+                return
+            }
 
-			process_incoming_call(uuid, state, req, actor_id);
-		} catch(err) {
-			log(__line, 'error', 'sip_server', err)
-			process.exit(1)
-		}
-	})
-	return sip_stack
+            process_incoming_call(uuid, state, req, actor_id);
+        } catch(err) {
+            log(__line, 'error', 'sip_server', err)
+            process.exit(1)
+        }
+    })
+    return sip_stack
 }
 
 
@@ -228,12 +228,12 @@ function free_call(state, call, uuid) {
 
 
 module.exports = (parent) => spawn(
-	parent,
-	(state = {}, msg, ctx) => {
-		//log(__line, 'info', 'sip_server', `got ${JSON.stringify(msg)}`)
-		log(__line, 'info', 'sip_server', `got ${msg.type}`)
+    parent,
+    (state = {}, msg, ctx) => {
+        //log(__line, 'info', 'sip_server', `got ${JSON.stringify(msg)}`)
+        log(__line, 'info', 'sip_server', `got ${msg.type}`)
 
-		if(msg.type == MT.START) {
+        if(msg.type == MT.START) {
             state.mrcp_server = msg.data.mrcp_server
 
             var udp_ports = _.range(config.rtp_lo_port, config.rtp_hi_port, 2)
@@ -245,7 +245,7 @@ module.exports = (parent) => spawn(
 
             rtp_utils.alloc_rtp_sessions(udp_ports, config.local_ip)
             .then(rtp_sessions => {
-				dispatch(ctx.self, {type: MT.PROCEED, data: {rtp_sessions: rtp_sessions}})
+                dispatch(ctx.self, {type: MT.PROCEED, data: {rtp_sessions: rtp_sessions}})
             })
             .catch(err => {
                 console.error("CRITICAL: could not allocate RTP range. Terminating")
@@ -255,15 +255,15 @@ module.exports = (parent) => spawn(
         } else if(msg.type == MT.PROCEED) { 
             state.rtp_sessions = msg.data.rtp_sessions
 
-			state.sip_stack = create_sip_stack(state, ctx.self)
+            state.sip_stack = create_sip_stack(state, ctx.self)
 
-			state.rtpCheckTimer = setInterval(() => {
-				var now = Date.now()
-				Object.keys(registrar).forEach(uuid => {
-					var call = registrar[uuid]
+            state.rtpCheckTimer = setInterval(() => {
+                var now = Date.now()
+                Object.keys(registrar).forEach(uuid => {
+                    var call = registrar[uuid]
 
-					if(now - call.rtp_session.activity_ts > config.rtp_timeout) {
-						log(__line, 'warn', uuid, 'Terminating call due to RTP inactivity')
+                    if(now - call.rtp_session.activity_ts > config.rtp_timeout) {
+                        log(__line, 'warn', uuid, 'Terminating call due to RTP inactivity')
 
                         free_call(state, call, uuid)
 
@@ -279,7 +279,7 @@ module.exports = (parent) => spawn(
                                     via: []
                                 }
                             }, (res) => {
-                                    log(__line, 'info', uuid, `BYE for call got: ${res.status} ${res.reason}`)	
+                                    log(__line, 'info', uuid, `BYE for call got: ${res.status} ${res.reason}`)    
                             })
                         } else {
                             var rs = 480 
@@ -287,11 +287,11 @@ module.exports = (parent) => spawn(
                             state.sip_stack.send(sip.makeResponse(call.sip_req, rs, rr))
                             log(__line, 'info', uuid, `refused with ${rs} ${rr}`)
                         }
-					}
-				})
-			}, 1000)
+                    }
+                })
+            }, 1000)
 
-			return state
+            return state
         } else if(msg.type == MT.SESSION_CREATED_ACK) { 
             var uuid = msg.data.uuid
 
@@ -331,10 +331,10 @@ module.exports = (parent) => spawn(
             log(__line, 'info', uuid, `INVITE for ${data.resource} accepted with ${rs} ${rr}`)
 
             return state
-		} else {
-			log(__line, 'error', 'sip_server', `got unexpected message ${JSON.stringify(msg)}`)
-			return state
-		}
-	},
-	'sip_server'
+        } else {
+            log(__line, 'error', 'sip_server', `got unexpected message ${JSON.stringify(msg)}`)
+            return state
+        }
+    },
+    'sip_server'
 )
