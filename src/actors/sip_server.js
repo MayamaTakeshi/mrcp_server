@@ -303,7 +303,7 @@ module.exports = (parent) => spawn(
             var data = registrar[uuid]
             var rtp_session = data.rtp_session
 
-            var answer_sdp = mrcp_utils.gen_answer_sdp(config.local_ip, config.mrcp_port, rtp_session.local_port, data.connection, data.uuid, data.resource)
+            var answer_sdp = mrcp_utils.gen_answer_sdp(config.local_ip, config.mrcp_port, rtp_session.local_port, data.connection, `${data.uuid}@${data.resource}`, data.resource)
 
             var rs = 200
             var rr = 'OK'
