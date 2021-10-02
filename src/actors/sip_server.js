@@ -101,7 +101,7 @@ var process_incoming_call = (uuid, state, req, actor_id) => {
     var rtp_session = state.rtp_sessions[rtp_session_index]
 
     rtp_session.setup({
-        remote_ip: data.remote_rtp_ip,
+        remote_ip: data.remote_ip,
         remote_port: data.remote_rtp_port,
         payload_type: 0,
         ssrc: u.gen_random_int(0xffffffff),
