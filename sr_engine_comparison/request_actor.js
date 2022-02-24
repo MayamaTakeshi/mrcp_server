@@ -43,6 +43,8 @@ function write_to_streams(self, state, data) {
 function prepare_speech_recog_streams(self, state) {
     close_speech_recog_streams(self, state)
 
+    var c = null
+
     var streams = {}
     var stream
 
@@ -67,8 +69,7 @@ function prepare_speech_recog_streams(self, state) {
     })
 
 
-
-    var c = config.olaris
+    c = config.olaris
     c.src_encoding = 'l16'
     stream = new OlarisSpeechRecogStream(uuid_v4(), 'ja-JP', null, c)
     streams['olaris'] = stream
@@ -90,7 +91,29 @@ function prepare_speech_recog_streams(self, state) {
     })
 
 
-    var c = config.julius
+    c = config.olaris_v2
+    c.src_encoding = 'l16'
+    stream = new OlarisSpeechRecogStream(uuid_v4(), 'ja-JP', null, c)
+    streams['olaris_v2'] = stream
+
+    stream.on('ready', () => {
+        self({type: 'sr_ready', engine: 'olaris_v2'})
+    })
+
+    stream.on('data', data => {
+        self({type: 'sr_data', engine: 'olaris_v2', data: data.transcript})
+    })
+
+    stream.on('error', err => {
+        self({type: 'sr_error', engine: 'olaris_v2', error: err})
+    })
+ 
+    stream.on('close', () => {
+        self({type: 'sr_close', engine: 'olaris_v2'})
+    })
+
+
+    c = config.julius
     c.src_encoding = 'l16'
     stream = new JuliusSpeechRecogStream(uuid_v4(), 'ja-JP', null, c)
     streams['julius'] = stream
@@ -116,7 +139,7 @@ function prepare_speech_recog_streams(self, state) {
     state.sr_streams = streams
     state.sr_streams_pending = Object.keys(streams).length
 
-    state.results = {'google': null, 'olaris': null, 'julius': null}
+    state.results = {'google': null, 'olaris': null, 'olaris_v2': null, 'julius': null}
 
     if(state.timer_id) {
         clearTimeout(state.timer_id)

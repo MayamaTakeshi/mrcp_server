@@ -17,7 +17,14 @@ module.exports = {
     },
 
     olaris: {
-        api_base: 'realtime.stt.batoner.works/real-time-decode',
+        api_base: 'realtime.stt.olaris.cloud/real-time-decode',
+        product_name: 'YOUR_PRODUCT_NAME',
+        organization_id: 'YOUR_ORGANIZATION_ID',
+        api_key: 'YOUR_API_KEY',
+    },
+
+    olaris_v2: {
+        api_base: 'realtime.stt.stg.olaris.cloud/real-time-decode',
         product_name: 'YOUR_PRODUCT_NAME',
         organization_id: 'YOUR_ORGANIZATION_ID',
         api_key: 'YOUR_API_KEY',
