@@ -2,7 +2,7 @@
 # Speech Recognition Engine Comparison
 
 ## Overview
-This is a web app that permits to do a quick comparison of performance of SR engines (currently we support google, olaris and julius).
+This is a web app that permits to do a quick comparison of performance of SR engines (currently we support google, olaris olaris_v2 and julius).
 
 It requires to run with HTTPS because media access will not be allowed unless you access the app at http://localhost
 
