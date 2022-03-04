@@ -4,11 +4,12 @@
 
 This is a Media Resource Control Protocol (v2) server that I'm writing in node.js for learning purposes.
 
-It currently supports Google Speech (or in case you don't have Google Speech service credentials you can try with languages 'dtmf' and 'morse')
-
-It also support Julius Speech Recognition using our [julius_server](https://github.com/MayamaTakeshi/julius_server)
-
-It also supports Japanese Speech Recognition using olaris API
+It currently supports:
+  - Google Speech Recog/Synth
+  - DTMF and MORSE Speech Recog/Synth (use languages 'dtmf' and 'morse')
+  - Julius Speech Recognition using our [julius_server](https://github.com/MayamaTakeshi/julius_server)
+  - Olaris Speech Recognition using olaris API (japanese language only)
+  - Vosk Speech Recognition (there is a Dockerfile in vosk_server_small_ja to build a server for japanese testing)
 
 To test things so far:
 

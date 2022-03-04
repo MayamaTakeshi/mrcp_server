@@ -35,8 +35,9 @@
     "sip": "git+https://git@github.com/kirm/sip.js.git#6d3ebf9062e741e1e5430c93960fdff644dcb30a",
     "speech-recog-stream": "^1.0.7",
     "tone-stream": "^1.4.0",
+    "vosk": "^0.3.32",
     "wav": "^1.0.2",
-    "ws": "^7.4.6",
+    "ws": "^7.5.7",
     "xml-js": "^1.6.11"
   },
   "devDependencies": {

@@ -17,6 +17,7 @@ const MorseSpeechRecogStream = require('../morse_speech_recog_stream.js')
 const GoogleSpeechRecogStream = require('../google_speech_recog_stream.js')
 const JuliusSpeechRecogStream = require('../julius_speech_recog_stream.js')
 const OlarisSpeechRecogStream = require('../olaris_speech_recog_stream.js')
+const VoskSpeechRecogStream = require('../vosk_speech_recog_stream.js')
 
 const FILE = u.filename()
 
@@ -149,6 +150,8 @@ module.exports = (parent, uuid) => spawn(
                         state.stream = new JuliusSpeechRecogStream(uuid, language, state.context, config.julius)
                     } else if(engine == 'olaris') {
                         state.stream = new OlarisSpeechRecogStream(uuid, language, state.context, config.olaris)
+                    } else if(engine == 'vosk') {
+                        state.stream = new VoskSpeechRecogStream(uuid, language, state.context, config.vosk)
                     } else {
                         state.stream = new GoogleSpeechRecogStream(uuid, language, state.context, {})
                     }
