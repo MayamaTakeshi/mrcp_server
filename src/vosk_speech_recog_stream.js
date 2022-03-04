@@ -62,7 +62,7 @@ class VoskSpeechRecogStream extends Writable {
                 var transcript = d.text
                 if(self.language == 'ja-JP') {
                     // remove spaces for japanese
-                    console.log('remove spaces for japanese')
+                    //console.log('remove spaces for japanese')
                     transcript = transcript.split(" ").join("")
                 }
                 self.eventEmitter.emit('data', {
@@ -90,7 +90,8 @@ class VoskSpeechRecogStream extends Writable {
             buf = []
 
             for(var i=0 ; i<data.length/2 ; i++) {
-                buf[i] = (data[i*2+1] << 8) + data[i*2]
+                buf[i*2] = (data[i*2] << 8)
+                buf[i*2+1] = data[i*2+1]
             }
 
             bufferArray = Array.prototype.slice.call(buf)

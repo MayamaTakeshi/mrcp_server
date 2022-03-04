@@ -6,6 +6,7 @@ const convert = require('pcm-convert')
 const GoogleSpeechRecogStream = require('../src/google_speech_recog_stream.js')
 const JuliusSpeechRecogStream = require('../src/julius_speech_recog_stream.js')
 const OlarisSpeechRecogStream = require('../src/olaris_speech_recog_stream.js')
+const VoskSpeechRecogStream = require('../src/vosk_speech_recog_stream.js')
 
 const config = require('../config/default.js')
 
@@ -113,6 +114,28 @@ function prepare_speech_recog_streams(self, state) {
     })
 
 
+    c = config.vosk
+    c.src_encoding = 'l16'
+    stream = new VoskSpeechRecogStream(uuid_v4(), 'ja-JP', null, c)
+    streams['vosk'] = stream
+
+    stream.on('ready', () => {
+        self({type: 'sr_ready', engine: 'vosk'})
+    })
+
+    stream.on('data', data => {
+        self({type: 'sr_data', engine: 'vosk', data: data.transcript})
+    })
+
+    stream.on('error', err => {
+        self({type: 'sr_error', engine: 'vosk', error: err})
+    })
+ 
+    stream.on('close', () => {
+        self({type: 'sr_close', engine: 'vosk'})
+    })
+
+
     c = config.julius
     c.src_encoding = 'l16'
     stream = new JuliusSpeechRecogStream(uuid_v4(), 'ja-JP', null, c)
@@ -139,7 +162,7 @@ function prepare_speech_recog_streams(self, state) {
     state.sr_streams = streams
     state.sr_streams_pending = Object.keys(streams).length
 
-    state.results = {'google': null, 'olaris': null, 'olaris_v2': null, 'julius': null}
+    state.results = {'google': null, 'olaris': null, 'olaris_v2': null, 'vosk': null, 'julius': null}
 
     if(state.timer_id) {
         clearTimeout(state.timer_id)
