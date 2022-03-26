@@ -22,7 +22,7 @@
     "engine.io": "^5.2.1",
     "lodash": "^4.17.19",
     "magic-globals": "^0.9.1",
-    "minimist": "^1.2.5",
+    "minimist": "^1.2.6",
     "moment": "^2.24.0",
     "morse-decoding-stream": "^1.1.4",
     "morse-node": "^0.1.1",
