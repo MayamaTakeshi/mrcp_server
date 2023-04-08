@@ -90,7 +90,7 @@ class OlarisSpeechRecogStream extends Writable {
                     sampling_rate: 8000,
                     product_name: config.product_name,
                     organization_id: config.organization_id,
-                    model_alias: 'model_batoner_japanese',
+                    model_alias: 'MODEL_JA_BUSINESS',
                 }
 
                 if(context) {
