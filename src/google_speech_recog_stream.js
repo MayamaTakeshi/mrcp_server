@@ -11,8 +11,6 @@ const { Writable } = require('stream')
 
 const { EventEmitter } = require('events')
 
-const VAD = require('node-vad')
-
 const _ = require('lodash')
 
 const FILE = u.filename()
@@ -100,21 +98,6 @@ class GoogleSpeechRecogStream extends Writable {
             setTimeout(() => {
                 this.eventEmitter.emit('ready')
             }, 0)           
-
-        this.vadStream = VAD.createStream({
-            mode: VAD.Mode.NORMAL,
-            audioFrequency: 8000,
-        })
-
-        this.vadStream.on('data', data => {
-            if(!this.start_of_input) { 
-                //console.dir(data)
-                if(data.speech.start && data.speech.startTime != 0) {
-                    this.eventEmitter.emit('start_of_input')
-                    this.start_of_input = true
-                }
-            }
-        })
     }
 
     on(evt, cb) {
@@ -145,8 +128,6 @@ class GoogleSpeechRecogStream extends Writable {
         var res = this.recognizeStream.write(buf)
         //log(__line, 'debug', this.uuid, `recognizeStream.write() res=${res}`)
         
-        this.vadStream.write(buf)
-
         callback()
 
         return true
