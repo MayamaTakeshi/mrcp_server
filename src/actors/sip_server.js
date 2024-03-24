@@ -302,9 +302,13 @@ module.exports = (parent) => spawn(
 
             var data = registrar[uuid]
             var rtp_session = data.rtp_session
-            var payload_type = rtp_session.payload_type
+            var payload = {
+                id: 0,
+                codec_name: 'PCMU',
+                clock_rate: 8000,
+            }
 
-            var answer_sdp = mrcp_utils.gen_answer_sdp(config.local_ip, config.mrcp_port, rtp_session.local_port, data.connection, `${data.uuid}@${data.resource}`, data.resource, payload_type)
+            var answer_sdp = mrcp_utils.gen_answer_sdp(config.local_ip, config.mrcp_port, rtp_session.local_port, data.connection, `${data.uuid}@${data.resource}`, data.resource, payload)
 
             var rs = 200
             var rr = 'OK'
