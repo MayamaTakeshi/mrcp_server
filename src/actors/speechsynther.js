@@ -140,8 +140,9 @@ module.exports = (parent, uuid) => spawn(
                 }
 
                 var language = msg.data.headers['speech-language']
+                var voice = msg.data.headers['voice-name']
 
-                if(language == 'dtmf') {
+                if(language == 'dtmf' || voice == 'dtmf') {
                     state.stream = new DtmfSpeechSynthStream(uuid, msg.data, content)
                 } else if(language == 'morse') {
                     state.stream = new MorseSpeechSynthStream(uuid, msg.data, content)
