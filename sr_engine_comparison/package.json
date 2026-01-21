@@ -12,7 +12,7 @@
   "author": "MayamaTakeshi",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.17.1",
+    "express": "^4.18.2",
     "pcm-convert": "^1.6.5",
     "socket.io": "^4.6.1",
     "tartjs": "^0.0.0"
